@@ -1,0 +1,420 @@
+{
+  "name": "MASTER – Client Template (All 9 Automations)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "missed-call-{{$json.clientId}}"
+      },
+      "name": "Trigger: Missed Call Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 100]
+    },
+    {
+      "parameters": {
+        "fromPhoneNumber": "{{$credentials.twilioPhone}}",
+        "toPhoneNumber": "={{$json.From}}",
+        "message": "Sorry we missed your call to {{$json.businessName}}! Reply or we'll call back in 5 min."
+      },
+      "name": "1 – Send Missed Call Text-Back",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [460, 100],
+      "credentials": { "twilioApi": "Client Twilio Creds" }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "application": "{{$env.AIRTABLE_BASE_ID}}",
+        "table": "Leads",
+        "fields": {
+          "Phone": "={{$json.From}}",
+          "Type": "Missed Call",
+          "Timestamp": "={{$now.toISO()}}"
+        }
+      },
+      "name": "Log Missed Call to Airtable",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [680, 100],
+      "credentials": { "airtableApi": "Client Airtable Creds" }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "new-lead-{{$json.clientId}}"
+      },
+      "name": "Trigger: New Lead Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 250]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "prompt": "Generate a friendly, 1-sentence AI reply for a new lead to {{$json.businessName}} ({{$json.niche}}). Lead name: {{$json.name}}. Keep it under 100 chars.",
+        "temperature": 0.7
+      },
+      "name": "2 – AI Generate Reply",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [460, 250],
+      "credentials": { "openAiApi": "Client OpenAI Creds" }
+    },
+    {
+      "parameters": {
+        "fromPhoneNumber": "{{$credentials.twilioPhone}}",
+        "toPhoneNumber": "={{$json.phone}}",
+        "message": "={{$node['2 – AI Generate Reply'].json.choices[0].message.content}}"
+      },
+      "name": "Send AI Lead Reply SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [680, 250],
+      "credentials": { "twilioApi": "Client Twilio Creds" }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "name": "Trigger: Nurture Schedule (1hr, 24hr, etc.)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 400]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": "{{$env.AIRTABLE_BASE_ID}}",
+        "table": "Leads",
+        "additionalFields": {
+          "filterByFormula": "AND({Status}='New', {Last Nurture} < DATETIME_ADD(NOW(), -1, 'hours'))"
+        }
+      },
+      "name": "Get Leads Ready for Nurture",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [460, 400],
+      "credentials": { "airtableApi": "Client Airtable Creds" }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "prompt": "Create a nurturing follow-up SMS for {{$item.fields.Business Name}} lead {{$item.fields.Name}}. Sequence step: 1hr/24hr. Keep warm, value-focused, under 100 chars.",
+        "temperature": 0.6
+      },
+      "name": "3 – AI Nurture Message",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [680, 400],
+      "credentials": { "openAiApi": "Client OpenAI Creds" }
+    },
+    {
+      "parameters": {
+        "fromPhoneNumber": "{{$credentials.twilioPhone}}",
+        "toPhoneNumber": "={{$item.fields.Phone}}",
+        "message": "={{$node['3 – AI Nurture Message'].json.choices[0].message.content}}"
+      },
+      "name": "Send Nurture SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [900, 400],
+      "credentials": { "twilioApi": "Client Twilio Creds" }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "application": "{{$env.AIRTABLE_BASE_ID}}",
+        "table": "Leads",
+        "id": "={{$item.id}}",
+        "updateFields": {
+          "Last Nurture": "={{$now.toISO()}}",
+          "Nurture Step": "={{$json.nurtureStep + 1}}"
+        }
+      },
+      "name": "Update Nurture Timestamp",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [1120, 400],
+      "credentials": { "airtableApi": "Client Airtable Creds" }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "booking-sms-{{$json.clientId}}"
+      },
+      "name": "Trigger: Booking Keyword SMS",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 550]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "prompt": "Parse this SMS for booking intent: {{$json.Body}}. For {{$json.businessName}} ({{$json.niche}}). Respond with availability questions or confirm slot. Under 100 chars.",
+        "temperature": 0.5
+      },
+      "name": "4 – AI Booking Parser",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [460, 550],
+      "credentials": { "openAiApi": "Client OpenAI Creds" }
+    },
+    {
+      "parameters": {
+        "fromPhoneNumber": "{{$credentials.twilioPhone}}",
+        "toPhoneNumber": "={{$json.From}}",
+        "message": "={{$node['4 – AI Booking Parser'].json.choices[0].message.content}}"
+      },
+      "name": "Send Booking Response",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [680, 550],
+      "credentials": { "twilioApi": "Client Twilio Creds" }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1
+            }
+          ]
+        }
+      },
+      "name": "Trigger: Post-Service Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 700]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": "{{$env.AIRTABLE_BASE_ID}}",
+        "table": "Customers",
+        "additionalFields": {
+          "filterByFormula": "{Service Date} = TODAY() - 1"
+        }
+      },
+      "name": "Get Recent Customers",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [460, 700],
+      "credentials": { "airtableApi": "Client Airtable Creds" }
+    },
+    {
+      "parameters": {
+        "fromPhoneNumber": "{{$credentials.twilioPhone}}",
+        "toPhoneNumber": "={{$item.fields.Phone}}",
+        "message": "Hey {{$item.fields.Name}}! How was your visit to {{$json.businessName}}? Reply 1-5 stars or review here: [link]. Thanks!"
+      },
+      "name": "5 – Send Review Request",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [680, 700],
+      "credentials": { "twilioApi": "Client Twilio Creds" }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 4
+            }
+          ]
+        }
+      },
+      "name": "Trigger: Monthly Reactivation",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 850]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": "{{$env.AIRTABLE_BASE_ID}}",
+        "table": "Leads",
+        "additionalFields": {
+          "filterByFormula": "{Status} = 'Cold' AND {Last Contact} < DATETIME_ADD(NOW(), -30, 'days')"
+        }
+      },
+      "name": "Get Cold Leads",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [460, 850],
+      "credentials": { "airtableApi": "Client Airtable Creds" }
+    },
+    {
+      "parameters": {
+        "fromPhoneNumber": "{{$credentials.twilioPhone}}",
+        "toPhoneNumber": "={{$item.fields.Phone}}",
+        "message": "Hey {{$item.fields.Name}}, it's been a bit since we chatted about {{$json.businessName}}. Still need help with {{$item.fields.Pain Point}}? Reply YES for a quick call."
+      },
+      "name": "6 – Send Reactivation SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [680, 850],
+      "credentials": { "twilioApi": "Client Twilio Creds" }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ig-dm-{{$json.clientId}}"
+      },
+      "name": "Trigger: IG DM Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 1000]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "prompt": "Respond as friendly IG support for {{$json.businessName}} ({{$json.niche}}). DM message: {{$json.entry[0].messaging[0].message.text}}. Keep casual, under 100 chars.",
+        "temperature": 0.8
+      },
+      "name": "7 – AI IG DM Reply",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [460, 1000],
+      "credentials": { "openAiApi": "Client OpenAI Creds" }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "application": "{{$env.AIRTABLE_BASE_ID}}",
+        "table": "Leads",
+        "fields": {
+          "Source": "Instagram DM",
+          "Message": "={{$json.entry[0].messaging[0].message.text}}",
+          "Reply": "={{$node['7 – AI IG DM Reply'].json.choices[0].message.content}}"
+        }
+      },
+      "name": "Log IG DM to Airtable",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [680, 1000],
+      "credentials": { "airtableApi": "Client Airtable Creds" }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      },
+      "name": "Trigger: Abandon Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 1150]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": "{{$env.AIRTABLE_BASE_ID}}",
+        "table": "Leads",
+        "additionalFields": {
+          "filterByFormula": "{Status} = 'Abandoned'"
+        }
+      },
+      "name": "Get Abandoned Leads",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [460, 1150],
+      "credentials": { "airtableApi": "Client Airtable Creds" }
+    },
+    {
+      "parameters": {
+        "fromPhoneNumber": "{{$credentials.twilioPhone}}",
+        "toPhoneNumber": "={{$item.fields.Phone}}",
+        "message": "Hey {{$item.fields.Name}}, saw you were checking out {{$json.businessName}} services. Forgot something? Reply HELP to pick up where you left off."
+      },
+      "name": "8 – Send Rescue SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [680, 1150],
+      "credentials": { "twilioApi": "Client Twilio Creds" }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 2
+            }
+          ]
+        }
+      },
+      "name": "Trigger: Quote Follow-Up",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 1300]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": "{{$env.AIRTABLE_BASE_ID}}",
+        "table": "Quotes",
+        "additionalFields": {
+          "filterByFormula": "{Sent Date} < TODAY() - 1 AND {Status} = 'Pending'"
+        }
+      },
+      "name": "Get Pending Quotes",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [460, 1300],
+      "credentials": { "airtableApi": "Client Airtable Creds" }
+    },
+    {
+      "parameters": {
+        "fromPhoneNumber": "{{$credentials.twilioPhone}}",
+        "toPhoneNumber": "={{$item.fields.Phone}}",
+        "message": "Hi {{$item.fields.Name}}, your quote for {{$json.businessName}} services is ready. Questions? Reply or call {{$credentials.twilioPhone}}. Expires soon!"
+      },
+      "name": "9 – Send Quote Follow-Up",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [680, 1300],
+      "credentials": { "twilioApi": "Client Twilio Creds" }
+    }
+  ],
+  "connections": {
+    "Trigger: Missed Call Webhook": { "main": [[{ "node": "1 – Send Missed Call Text-Back" }]] },
+    "1 – Send Missed Call Text-Back": { "main": [[{ "node": "Log Missed Call to Airtable" }]] },
+    "Trigger: New Lead Webhook": { "main": [[{ "node": "2 – AI Generate Reply" }]] },
+    "2 – AI Generate Reply": { "main": [[{ "node": "Send AI Lead Reply SMS" }]] },
+    "Trigger: Nurture Schedule (1hr, 24hr, etc.)": { "main": [[{ "node": "Get Leads Ready for Nurture" }]] },
+    "Get Leads Ready for Nurture": { "main": [[{ "node": "3 – AI Nurture Message" }]] },
+    "3 – AI Nurture Message": { "main": [[{ "node": "Send Nurture SMS" }]] },
+    "Send Nurture SMS": { "main": [[{ "node": "Update Nurture Timestamp" }]] },
+    "Trigger: Booking Keyword SMS": { "main": [[{ "node": "4 – AI Booking Parser" }]] },
+    "4 – AI Booking Parser": { "main": [[{ "node": "Send Booking Response" }]] },
+    "Trigger: Post-Service Schedule": { "main": [[{ "node": "Get Recent Customers" }]] },
+    "Get Recent Customers": { "main": [[{ "node": "5 – Send Review Request" }]] },
+    "Trigger: Monthly Reactivation": { "main": [[{ "node": "Get Cold Leads" }]] },
+    "Get Cold Leads": { "main": [[{ "node": "6 – Send Reactivation SMS" }]] },
+    "Trigger: IG DM Webhook": { "main": [[{ "node": "7 – AI IG DM Reply" }]] },
+    "7 – AI IG DM Reply": { "main": [[{ "node": "Log IG DM to Airtable" }]] },
+    "Trigger: Abandon Check": { "main": [[{ "node": "Get Abandoned Leads" }]] },
+    "Get Abandoned Leads": { "main": [[{ "node": "8 – Send Rescue SMS" }]] },
+    "Trigger: Quote Follow-Up": { "main": [[{ "node": "Get Pending Quotes" }]] },
+    "Get Pending Quotes": { "main": [[{ "node": "9 – Send Quote Follow-Up" }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": ["MASTER", "DO-NOT-DELETE"]
+}

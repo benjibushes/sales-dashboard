@@ -1,0 +1,341 @@
+{
+  "name": "BenBuildsBiz - Demo Actions Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "demo",
+        "options": {}
+      },
+      "id": "webhook-demo-trigger",
+      "name": "Webhook - Demo Action",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 400],
+      "webhookId": "demo-actions"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.demoType }}",
+              "operation": "equals"
+            }
+          ]
+        }
+      },
+      "id": "switch-demo-type",
+      "name": "Route by Demo Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "={{ $credentials.phoneNumber }}",
+        "toPhoneNumber": "={{ $json.phone }}",
+        "message": "=Hi {{ $json.ownerName }}! 👋\n\nThis is Ben - thanks for chatting with me at {{ $json.businessName }}!\n\nThis is an example of an INSTANT auto-reply text your customers would receive.\n\nNo more missed opportunities. Every inquiry gets an instant response, even when you're busy.\n\nI'll follow up with you shortly!\n\n- Ben\nBenBuildsBiz.com",
+        "options": {}
+      },
+      "id": "sms-auto-reply",
+      "name": "Auto-Reply SMS Demo",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [700, 100],
+      "credentials": {
+        "twilioApi": {
+          "id": "YOUR_TWILIO_CREDENTIALS",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "={{ $credentials.phoneNumber }}",
+        "toPhoneNumber": "={{ $json.phone }}",
+        "message": "=Hi {{ $json.ownerName }}, this is Ben! 📞\n\nYou just saw what happens when someone calls {{ $json.businessName }} and you can't answer - they get an instant text like this!\n\n✅ No more lost leads\n✅ Every missed call = automatic follow-up\n✅ Customers know you'll call back\n\nLet's get this set up for you!\n\n- Ben\nBenBuildsBiz.com",
+        "options": {}
+      },
+      "id": "sms-missed-call",
+      "name": "Missed Call Demo",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [700, 250],
+      "credentials": {
+        "twilioApi": {
+          "id": "YOUR_TWILIO_CREDENTIALS",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "={{ $credentials.phoneNumber }}",
+        "toPhoneNumber": "={{ $json.phone }}",
+        "message": "=Hi {{ $json.ownerName }}! ⭐\n\nIf you were a happy customer of {{ $json.businessName }}, you'd be getting this automated review request right now.\n\n✨ Takes 10 seconds\n✨ Gets you more 5-star reviews\n✨ Runs 100% automatically\n\nImagine getting 10-20 more reviews per month with ZERO effort.\n\nWant this for your business?\n\n- Ben\nBenBuildsBiz.com",
+        "options": {}
+      },
+      "id": "sms-review-request",
+      "name": "Review Request Demo",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [700, 400],
+      "credentials": {
+        "twilioApi": {
+          "id": "YOUR_TWILIO_CREDENTIALS",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "={{ $credentials.phoneNumber }}",
+        "toPhoneNumber": "={{ $json.phone }}",
+        "message": "=Hi {{ $json.ownerName }}! 📅\n\nClick here to see how easy it is for your customers to book with {{ $json.businessName }}:\n\n👉 [Your Booking Page Link]\n\n✅ 24/7 online booking\n✅ Automatic confirmations\n✅ SMS reminders\n✅ No more phone tag\n\nThis books appointments while you sleep!\n\nLet's set this up for you.\n\n- Ben\nBenBuildsBiz.com",
+        "options": {}
+      },
+      "id": "sms-booking-flow",
+      "name": "Booking Flow Demo",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [700, 550],
+      "credentials": {
+        "twilioApi": {
+          "id": "YOUR_TWILIO_CREDENTIALS",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "={{ $credentials.phoneNumber }}",
+        "toPhoneNumber": "={{ $json.phone }}",
+        "message": "=Hi {{ $json.ownerName }}, this is Ben! 🔄\n\nThis is message #1 in an automated follow-up sequence.\n\nYour leads would get:\n• Day 1: Intro message\n• Day 3: Value reminder\n• Day 7: Special offer\n• Day 14: Last chance\n\nAll automatic. Zero effort from you.\n\nNever lose another lead because you \"forgot to follow up.\"\n\nWant this for {{ $json.businessName }}?\n\n- Ben\nBenBuildsBiz.com",
+        "options": {}
+      },
+      "id": "sms-follow-up",
+      "name": "Follow-Up Sequence Demo",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [700, 700],
+      "credentials": {
+        "twilioApi": {
+          "id": "YOUR_TWILIO_CREDENTIALS",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "application": {
+          "__rl": true,
+          "value": "YOUR_AIRTABLE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "BenBuildsBiz CRM"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Demo Actions",
+          "mode": "list",
+          "cachedResultName": "Demo Actions"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.timestamp }}",
+            "Business Name": "={{ $json.businessName }}",
+            "Owner Name": "={{ $json.ownerName }}",
+            "Phone": "={{ $json.phone }}",
+            "Demo Type": "={{ $json.demoType }}",
+            "Action Name": "={{ $json.actionName }}",
+            "Niche": "={{ $json.niche }}",
+            "Status": "Completed",
+            "Engagement Score": "={{ $json.demoType === 'auto-reply-sms' ? 8 : $json.demoType === 'review-request' ? 9 : 7 }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "log-demo-action",
+      "name": "Log Demo Action to Airtable",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [950, 400],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "YOUR_AIRTABLE_CREDENTIALS",
+          "name": "Airtable Personal Access Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "ben@benbuildsbiz.com",
+        "toEmail": "ben@benbuildsbiz.com",
+        "subject": "🎯 Demo Action: {{ $json.demoType }} for {{ $json.businessName }}",
+        "emailType": "html",
+        "message": "=<html>\n<body style=\"font-family: Arial, sans-serif;\">\n  <h2>Demo Action Triggered</h2>\n  <p><strong>Business:</strong> {{ $json.businessName }}</p>\n  <p><strong>Owner:</strong> {{ $json.ownerName }}</p>\n  <p><strong>Demo Type:</strong> {{ $json.demoType }}</p>\n  <p><strong>Phone:</strong> {{ $json.phone }}</p>\n  <p><strong>Time:</strong> {{ $json.timestamp }}</p>\n  \n  <p><em>SMS was sent successfully!</em></p>\n  \n  <p>Follow up with this lead soon while they're hot! 🔥</p>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "notify-ben-email",
+      "name": "Notify Ben (Email)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [950, 600],
+      "credentials": {
+        "smtp": {
+          "id": "YOUR_SMTP_CREDENTIALS",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook - Demo Action": {
+      "main": [
+        [
+          {
+            "node": "Route by Demo Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Demo Type": {
+      "main": [
+        [
+          {
+            "node": "Auto-Reply SMS Demo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Missed Call Demo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Review Request Demo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Booking Flow Demo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Follow-Up Sequence Demo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-Reply SMS Demo": {
+      "main": [
+        [
+          {
+            "node": "Log Demo Action",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify Ben (Email)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Missed Call Demo": {
+      "main": [
+        [
+          {
+            "node": "Log Demo Action",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify Ben (Email)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Review Request Demo": {
+      "main": [
+        [
+          {
+            "node": "Log Demo Action",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify Ben (Email)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Booking Flow Demo": {
+      "main": [
+        [
+          {
+            "node": "Log Demo Action",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify Ben (Email)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Follow-Up Sequence Demo": {
+      "main": [
+        [
+          {
+            "node": "Log Demo Action",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify Ben (Email)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-11-22T00:00:00.000Z",
+  "versionId": "1"
+}
+

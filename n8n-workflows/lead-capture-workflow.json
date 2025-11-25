@@ -1,0 +1,240 @@
+{
+  "name": "BenBuildsBiz - Lead Capture Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook - Lead Received",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "lead-capture"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "leadScore",
+              "value": "={{ $json.painPoint === 'missed-calls' || $json.painPoint === 'no-shows' ? 'HOT' : 'WARM' }}"
+            },
+            {
+              "name": "followUpDate",
+              "value": "={{ $now.plus(1, 'day').toISO() }}"
+            },
+            {
+              "name": "nicheLabel",
+              "value": "={{ $json.niche.charAt(0).toUpperCase() + $json.niche.slice(1) }}"
+            },
+            {
+              "name": "urgencyScore",
+              "value": "={{ ['missed-calls', 'no-shows', 'inconsistent-follow-up'].includes($json.painPoint) ? 9 : 7 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-enrichment",
+      "name": "Enrich Lead Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "application": {
+          "__rl": true,
+          "value": "YOUR_AIRTABLE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "BenBuildsBiz CRM"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "list",
+          "cachedResultName": "Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.timestamp }}",
+            "Business Name": "={{ $json.businessName }}",
+            "Owner Name": "={{ $json.ownerName }}",
+            "Phone": "={{ $json.phone }}",
+            "Email": "={{ $json.email }}",
+            "Niche": "={{ $json.nicheLabel }}",
+            "Pain Point": "={{ $json.painPoint }}",
+            "Notes": "={{ $json.notes }}",
+            "Lead Score": "={{ $json.leadScore }}",
+            "Urgency": "={{ $json.urgencyScore }}",
+            "Follow Up Date": "={{ $json.followUpDate }}",
+            "Source": "Live Demo Dashboard",
+            "Status": "New",
+            "Demo Count": "0"
+          }
+        },
+        "options": {}
+      },
+      "id": "airtable-leads",
+      "name": "Save to Airtable - Leads",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [650, 200],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "YOUR_AIRTABLE_CREDENTIALS",
+          "name": "Airtable Personal Access Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "🔥 NEW HOT LEAD - {{ $json.businessName }}"
+            },
+            {
+              "name": "blocks",
+              "value": "=[\n  {\n    \"type\": \"header\",\n    \"text\": {\n      \"type\": \"plain_text\",\n      \"text\": \"🎯 New Lead: {{ $json.businessName }}\"\n    }\n  },\n  {\n    \"type\": \"section\",\n    \"fields\": [\n      {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Owner:*\\n{{ $json.ownerName }}\"\n      },\n      {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Niche:*\\n{{ $json.nicheLabel }}\"\n      },\n      {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Phone:*\\n{{ $json.phone }}\"\n      },\n      {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Email:*\\n{{ $json.email }}\"\n      },\n      {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Pain Point:*\\n{{ $json.painPoint }}\"\n      },\n      {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Lead Score:*\\n{{ $json.leadScore }} 🔥\"\n      }\n    ]\n  },\n  {\n    \"type\": \"section\",\n    \"text\": {\n      \"type\": \"mrkdwn\",\n      \"text\": \"*Notes:*\\n{{ $json.notes || 'No notes' }}\"\n    }\n  },\n  {\n    \"type\": \"actions\",\n    \"elements\": [\n      {\n        \"type\": \"button\",\n        \"text\": {\n          \"type\": \"plain_text\",\n          \"text\": \"📞 Call Now\"\n        },\n        \"url\": \"tel:{{ $json.phone }}\"\n      },\n      {\n        \"type\": \"button\",\n        \"text\": {\n          \"type\": \"plain_text\",\n          \"text\": \"📧 Email\"\n        },\n        \"url\": \"mailto:{{ $json.email }}\"\n      }\n    ]\n  }\n]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "slack-notification",
+      "name": "Notify Ben on Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.leadScore }}",
+              "operation": "equals",
+              "value2": "HOT"
+            }
+          ]
+        }
+      },
+      "id": "if-hot-lead",
+      "name": "Is HOT Lead?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "ben@benbuildsbiz.com",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Quick question about {{ $json.businessName }}",
+        "emailType": "html",
+        "message": "=<html>\n<body style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333;\">\n  <div style=\"max-width: 600px; margin: 0 auto; padding: 20px;\">\n    <h2 style=\"color: #000;\">Hi {{ $json.ownerName }}! 👋</h2>\n    \n    <p>Thanks for checking out the live demo for <strong>{{ $json.businessName }}</strong>!</p>\n    \n    <p>I noticed you mentioned <strong>{{ $json.painPoint }}</strong> as a challenge. I've helped dozens of {{ $json.nicheLabel }} businesses solve exactly that.</p>\n    \n    <div style=\"background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;\">\n      <h3 style=\"margin-top: 0;\">Here's what we could build for you:</h3>\n      <ul style=\"margin: 0;\">\n        <li>Automated booking & reminders</li>\n        <li>Instant customer communication</li>\n        <li>Review requests & referral systems</li>\n        <li>Custom workflows for {{ $json.nicheLabel }} businesses</li>\n      </ul>\n    </div>\n    \n    <p><strong>Want to see exactly how this would work for {{ $json.businessName }}?</strong></p>\n    \n    <p>Reply to this email or call me at <a href=\"tel:YOUR_PHONE\">(555) 123-4567</a></p>\n    \n    <p>Talk soon!<br>\n    Ben<br>\n    <a href=\"https://benbuildsbiz.com\">BenBuildsBiz.com</a></p>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "send-follow-up-email",
+      "name": "Send Follow-Up Email (HOT)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [1050, 200],
+      "credentials": {
+        "smtp": {
+          "id": "YOUR_SMTP_CREDENTIALS",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "={{ $credentials.phoneNumber }}",
+        "toPhoneNumber": "={{ $json.phone }}",
+        "message": "=Hi {{ $json.ownerName }}! 👋\n\nThis is Ben from BenBuildsBiz. Great meeting you at {{ $json.businessName }}!\n\nI'm excited to show you how we can solve your {{ $json.painPoint }} challenge with custom automation.\n\nI'll follow up with you within 24 hours. In the meantime, check out some examples: [link]\n\n- Ben",
+        "options": {}
+      },
+      "id": "send-sms-hot",
+      "name": "Send SMS (HOT Lead)",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [1050, 400],
+      "credentials": {
+        "twilioApi": {
+          "id": "YOUR_TWILIO_CREDENTIALS",
+          "name": "Twilio account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook - Lead Received": {
+      "main": [
+        [
+          {
+            "node": "Enrich Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrich Lead Data": {
+      "main": [
+        [
+          {
+            "node": "Save to Airtable - Leads",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify Ben on Slack",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is HOT Lead?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is HOT Lead?": {
+      "main": [
+        [
+          {
+            "node": "Send Follow-Up Email (HOT)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send SMS (HOT Lead)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-11-22T00:00:00.000Z",
+  "versionId": "1"
+}
+

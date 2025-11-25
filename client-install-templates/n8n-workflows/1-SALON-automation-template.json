@@ -1,0 +1,465 @@
+{
+  "name": "{{BUSINESS_NAME}} - Salon Automation System",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "incoming-salon",
+        "options": {}
+      },
+      "id": "webhook-incoming",
+      "name": "Incoming SMS/Call",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.MessageStatus || $json.CallStatus }}",
+              "operation": "contains"
+            }
+          ]
+        }
+      },
+      "id": "switch-message-type",
+      "name": "Route by Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.From }}",
+        "message": "=Hi! Thanks for texting {{BUSINESS_NAME}}! 💇‍♀️\n\nWe'll get back to you within the hour.\n\nNeed to book? Reply BOOK\nHours: Mon-Sat 9am-7pm\nSunday: Closed\n\nTalk soon!\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-auto-reply",
+      "name": "Auto-Reply to Text",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [700, 250]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.From }}",
+        "message": "=Hi! We missed your call at {{BUSINESS_NAME}}. 📞\n\nWe're probably with a client right now, but we'll call you back ASAP!\n\nOr text us and we'll respond faster.\n\nNeed to book? Reply BOOK\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-missed-call",
+      "name": "Missed Call Text",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [700, 400]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Customers",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Phone": "={{ $json.From }}",
+            "First Contact": "={{ $now }}",
+            "Last Message": "={{ $json.Body || 'Missed call' }}",
+            "Status": "New Lead",
+            "Source": "Inbound"
+          }
+        },
+        "options": {}
+      },
+      "id": "airtable-log",
+      "name": "Log to Airtable",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [700, 550]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-appointment-reminders",
+      "name": "Daily 9am - Check Appointments",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 700]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Appointments",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "AND(IS_AFTER({Appointment Date}, TODAY()), IS_BEFORE({Appointment Date}, DATEADD(TODAY(), 1, 'days')), {Reminder Sent} = FALSE())"
+        }
+      },
+      "id": "airtable-get-appointments",
+      "name": "Get Tomorrow's Appointments",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 700]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hi {{ $json['Customer Name'] }}! ✨\n\nJust a friendly reminder about your appointment tomorrow at {{BUSINESS_NAME}}:\n\n📅 {{ $json['Appointment Date'] }}\n⏰ {{ $json['Time'] }}\n💇‍♀️ Service: {{ $json['Service'] }}\n\nSee you then! Reply CONFIRM to confirm, or RESCHEDULE if you need to change.\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-24hr-reminder",
+      "name": "Send 24hr Reminder",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 700]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-1hr-reminders",
+      "name": "Hourly - Check 1hr Reminders",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 900]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Appointments",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "AND(DATETIME_DIFF({Appointment DateTime}, NOW(), 'hours') <= 1, DATETIME_DIFF({Appointment DateTime}, NOW(), 'hours') > 0, {1hr Reminder Sent} = FALSE())"
+        }
+      },
+      "id": "airtable-get-soon",
+      "name": "Get Appointments in 1 Hour",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 900]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hi {{ $json['Customer Name'] }}! 👋\n\nYour appointment at {{BUSINESS_NAME}} is in 1 hour!\n\n⏰ Time: {{ $json['Time'] }}\n📍 Address: {{ADDRESS}}\n\nSee you soon! Running late? Just text us.\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-1hr-reminder",
+      "name": "Send 1hr Reminder",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 900]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 20 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-review-requests",
+      "name": "Daily 8pm - Review Requests",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 1100]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Appointments",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "AND({Status} = 'Completed', IS_SAME({Appointment Date}, TODAY(), 'day'), {Review Requested} = FALSE())"
+        }
+      },
+      "id": "airtable-get-completed",
+      "name": "Get Today's Completed",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 1100]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hi {{ $json['Customer Name'] }}! ⭐\n\nThanks for coming to {{BUSINESS_NAME}} today! We hope you love your new look!\n\nIf you're happy with your service, we'd love a Google review:\n{{GOOGLE_REVIEW_LINK}}\n\nIt takes 30 seconds and means the world to us!\n\nSee you next time! 💕\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-review-request",
+      "name": "Request Google Review",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 1100]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 1 * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-reactivation",
+      "name": "Monthly - Customer Reactivation",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 1300]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Customers",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "AND(DATETIME_DIFF(NOW(), {Last Visit}, 'days') > 60, DATETIME_DIFF(NOW(), {Last Visit}, 'days') < 90, {Reactivation Sent} = FALSE())"
+        }
+      },
+      "id": "airtable-get-inactive",
+      "name": "Get Inactive Customers (60+ days)",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 1300]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hi {{ $json['Name'] }}! 👋\n\nWe miss you at {{BUSINESS_NAME}}! It's been a while since your last visit.\n\nWe'd love to see you again! 💕\n\n🎁 Special offer: 20% off your next service if you book this week!\n\nReply BOOK to schedule or call us at {{PHONE}}\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-reactivation",
+      "name": "Send Reactivation Offer",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 1300]
+    }
+  ],
+  "connections": {
+    "Incoming SMS/Call": {
+      "main": [
+        [
+          {
+            "node": "Route by Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Type": {
+      "main": [
+        [
+          {
+            "node": "Auto-Reply to Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Missed Call Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-Reply to Text": {
+      "main": [
+        [
+          {
+            "node": "Log to Airtable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Missed Call Text": {
+      "main": [
+        [
+          {
+            "node": "Log to Airtable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 9am - Check Appointments": {
+      "main": [
+        [
+          {
+            "node": "Get Tomorrow's Appointments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Tomorrow's Appointments": {
+      "main": [
+        [
+          {
+            "node": "Send 24hr Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hourly - Check 1hr Reminders": {
+      "main": [
+        [
+          {
+            "node": "Get Appointments in 1 Hour",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Appointments in 1 Hour": {
+      "main": [
+        [
+          {
+            "node": "Send 1hr Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 8pm - Review Requests": {
+      "main": [
+        [
+          {
+            "node": "Get Today's Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Today's Completed": {
+      "main": [
+        [
+          {
+            "node": "Request Google Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Monthly - Customer Reactivation": {
+      "main": [
+        [
+          {
+            "node": "Get Inactive Customers (60+ days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Inactive Customers (60+ days)": {
+      "main": [
+        [
+          {
+            "node": "Send Reactivation Offer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 5,
+  "updatedAt": "2025-11-22T00:00:00.000Z",
+  "versionId": "1",
+  "meta": {
+    "templateCreatedBy": "BenBuildsBiz",
+    "description": "Complete salon automation: missed calls, reminders, reviews, reactivation",
+    "instructions": "1. Import this workflow 2. Replace all {{VARIABLES}} 3. Add Twilio + Airtable credentials 4. Activate"
+  }
+}
+

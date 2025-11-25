@@ -1,0 +1,150 @@
+{
+  "name": "BenBuildsBiz - Demo Actions Workflow (Improved)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "demo",
+        "options": {}
+      },
+      "id": "webhook-demo-trigger",
+      "name": "Webhook - Demo Action",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 400]
+    },
+    {
+      "parameters": {
+        "mode": "everyItem",
+        "rules": [
+          { "output": 0, "value": "={{ $json.action === 'sendAutoReply' }}" },
+          { "output": 1, "value": "={{ $json.action === 'sendMissedCall' }}" },
+          { "output": 2, "value": "={{ $json.action === 'sendReviewRequest' }}" },
+          { "output": 3, "value": "={{ $json.action === 'showBookingFlow' }}" },
+          { "output": 4, "value": "={{ $json.action === 'showPipeline' }}" },
+          { "output": 5, "value": "={{ $json.action === 'sendFollowUp' }}" }
+        ]
+      },
+      "id": "switch-demo-type",
+      "name": "Route by Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "fromPhoneNumber": "+1YOURTWILIONUMBER",
+        "toPhoneNumber": "={{ $json.phone }}",
+        "message": "=Hi {{ $json.ownerName }}!\n\nThis is Ben - thanks for chatting with me at {{ $json.businessName }}!\n\nThis is an example of an INSTANT auto-reply text your customers would receive.\n\nNo more missed opportunities.\n\n- Ben"
+      },
+      "name": "Auto-Reply SMS Demo",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [700, 100],
+      "credentials": { "twilioApi": "Twilio account" }
+    },
+    {
+      "parameters": {
+        "fromPhoneNumber": "+1YOURTWILIONUMBER",
+        "toPhoneNumber": "={{ $json.phone }}",
+        "message": "=Hi {{ $json.ownerName }}, this is Ben!\n\nYou just saw what happens when someone calls {{ $json.businessName }} and you can't answer - they get an instant text like this!\n\nNo more lost leads!"
+      },
+      "name": "Missed Call Demo",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [700, 200],
+      "credentials": { "twilioApi": "Twilio account" }
+    },
+    {
+      "parameters": {
+        "fromPhoneNumber": "+1YOURTWILIONUMBER",
+        "toPhoneNumber": "={{ $json.phone }}",
+        "message": "=Hey {{ $json.ownerName }}!\n\nHow was your experience at {{ $json.businessName }} today?\n\nRate us 1-5 or reply with feedback!\n\nThanks - Ben"
+      },
+      "name": "Review Request Demo",
+      "type": "n8n-nodes-base.tw dramatically",
+      "typeVersion": 1,
+      "position": [700, 300],
+      "credentials": { "twilioApi": "Twilio account" }
+    },
+    {
+      "parameters": {
+        "fromPhoneNumber": "+1YOURTWILIONUMBER",
+        "toPhoneNumber": "={{ $json.phone }}",
+        "message": "=Hi {{ $json.ownerName }}!\n\nThis is an example of our AI booking system.\n\nReply 'BOOK APPT' to see how it instantly schedules for you.\n\nNo more phone tag!"
+      },
+      "name": "Booking Flow Demo",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [700, 400],
+      "credentials": { "twilioApi": "Twilio account" }
+    },
+    {
+      "parameters": {
+        "fromPhoneNumber": "+1YOURTWILIONUMBER",
+        "toPhoneNumber": "={{ $json.phone }}",
+        "message": "=Quick update from Ben:\n\nYour lead pipeline just got smarter! This is how we automate CRM updates.\n\nNew lead → Instant qualify → Into your system."
+      },
+      "name": "Pipeline Update Demo",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [700, 500],
+      "credentials": { "twilioApi": "Twilio account" }
+    },
+    {
+      "parameters": {
+        "fromPhoneNumber": "+1YOURTWILIONUMBER",
+        "toPhoneNumber": "={{ $json.phone }}",
+        "message": "=Follow-up from Ben!\n\nThis is Day 1 of an automated nurture sequence for {{ $json.businessName }}.\n\nWe can set this up to gently remind leads until they convert."
+      },
+      "name": "Follow-Up Sequence Demo",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [700, 600],
+      "credentials": { "twilioApi": "Twilio account" }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "application": "YOUR_AIRTABLE_BASE_ID",
+        "table": "Demo Logs",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now.toISO() }}",
+            "Business Name": "={{ $json.businessName }}",
+            "Action": "={{ $json.action }}",
+            "Phone": "={{ $json.phone }}",
+            "Status": "Sent"
+          }
+        }
+      },
+      "name": "Log Demo Action",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [950, 400],
+      "credentials": { "airtableApi": "Airtable account" }
+    }
+  ],
+  "connections": {
+    "Webhook - Demo Action": { "main": [[{ "node": "Route by Action" }]] },
+    "Route by Action": {
+      "main": [
+        [{ "node": "Auto-Reply SMS Demo" }],
+        [{ "node": "Missed Call Demo" }],
+        [{ "node": "Review Request Demo" }],
+        [{ "node": "Booking Flow Demo" }],
+        [{ "node": "Pipeline Update Demo" }],
+        [{ "node": "Follow-Up Sequence Demo" }]
+      ]
+    },
+    "Auto-Reply SMS Demo": { "main": [[{ "node": "Log Demo Action" }]] },
+    "Missed Call Demo": { "main": [[{ "node": "Log Demo Action" }]] },
+    "Review Request Demo": { "main": [[{ "node": "Log Demo Action" }]] },
+    "Booking Flow Demo": { "main": [[{ "node": "Log Demo Action" }]] },
+    "Pipeline Update Demo": { "main": [[{ "node": "Log Demo Action" }]] },
+    "Follow-Up Sequence Demo": { "main": [[{ "node": "Log Demo Action" }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false
+}

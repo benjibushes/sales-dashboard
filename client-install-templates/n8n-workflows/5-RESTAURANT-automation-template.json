@@ -1,0 +1,710 @@
+{
+  "name": "{{BUSINESS_NAME}} - Restaurant Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "incoming-restaurant",
+        "options": {}
+      },
+      "id": "webhook-incoming",
+      "name": "Incoming Message",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.Body.toLowerCase() }}",
+              "operation": "contains",
+              "value2": "reserve"
+            }
+          ]
+        }
+      },
+      "id": "switch-intent",
+      "name": "Detect Intent",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.From }}",
+        "message": "=Hey! Thanks for texting {{BUSINESS_NAME}}! 🍽️\n\nWant to:\n📅 Make a reservation? Reply RESERVE\n📍 Check our hours? Reply HOURS\n🍕 See our menu? Reply MENU\n\nWe'll respond ASAP!\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-auto-reply",
+      "name": "Auto-Reply - General",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.From }}",
+        "message": "=Perfect! Let's get you a table! 🎉\n\nWhat day & time?\nHow many people?\n\nExample: \"Saturday 7pm, party of 4\"\n\nOr call us: {{PHONE}}\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-reservation-flow",
+      "name": "Reservation Flow Start",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Customers",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Phone": "={{ $json.From }}",
+            "First Contact": "={{ $now }}",
+            "Last Message": "={{ $json.Body }}",
+            "Status": "Prospect",
+            "Source": "SMS"
+          }
+        },
+        "options": {}
+      },
+      "id": "airtable-log",
+      "name": "Log Customer",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-reservation-reminders",
+      "name": "Daily 9am - Reservation Reminders",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 550]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Reservations",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "AND(IS_SAME({Date}, TODAY(), 'day'), {Status} = 'Confirmed', {Reminder Sent} = FALSE())"
+        }
+      },
+      "id": "airtable-today-reservations",
+      "name": "Get Today's Reservations",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 550]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hey {{ $json.Name }}! 👋\n\nLooking forward to seeing you TODAY at {{$json.Time}}!\n\n🍽️ Table for {{$json['Party Size']}}\n📍 {{BUSINESS_NAME}}\n{{ADDRESS}}\n\nRunning late? Just let us know!\n\nSee you soon! 😊\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-same-day-reminder",
+      "name": "Same-Day Reservation Reminder",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 550]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/15 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-waitlist",
+      "name": "Every 15min - Waitlist Management",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 750]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Waitlist",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "AND({Status} = 'Table Ready', {Notified} = FALSE())"
+        }
+      },
+      "id": "airtable-ready-tables",
+      "name": "Get Ready Tables",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 750]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "={{ $json.Name }}! 🎉\n\nGREAT NEWS! Your table for {{$json['Party Size']}} is ready at {{BUSINESS_NAME}}!\n\n⏰ You have 15 minutes to claim it.\n\nReply YES if you're coming!\nReply NO if you can't make it.\n\nSee you in a few! 😊",
+        "options": {}
+      },
+      "id": "sms-table-ready",
+      "name": "Table Ready Notification",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 750]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 20 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-post-dining",
+      "name": "Daily 8pm - Post-Dining Follow-Up",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 950]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Reservations",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "AND({Status} = 'Completed', IS_SAME({Date}, TODAY(), 'day'), {Follow-Up Sent} = FALSE())"
+        }
+      },
+      "id": "airtable-completed-today",
+      "name": "Get Today's Completed Reservations",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 950]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hey {{ $json.Name }}! 😊\n\nThanks for dining at {{BUSINESS_NAME}} tonight! Hope you loved everything!\n\n⭐ If you had a great experience, we'd be so grateful for a quick Google review:\n\n{{GOOGLE_REVIEW_LINK}}\n\nCan't wait to see you again soon!\n\n- The {{BUSINESS_NAME}} Team",
+        "options": {}
+      },
+      "id": "sms-post-dining-review",
+      "name": "Post-Dining Review Request",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 950]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 1 * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-birthday-month",
+      "name": "1st of Month - Birthday Messages",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 1150]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Customers",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "MONTH({Birthday}) = MONTH(TODAY())"
+        }
+      },
+      "id": "airtable-birthday-customers",
+      "name": "Get Birthday Customers This Month",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 1150]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=🎂 HAPPY BIRTHDAY {{ $json.Name }}! 🎉\n\nCelebrate with us at {{BUSINESS_NAME}}!\n\n🎁 Birthday special: Complimentary dessert when you dine with us this month!\n\nJust mention this text when you come in. 🍰\n\nHope your day is amazing!\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-birthday-offer",
+      "name": "Birthday Offer Message",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 1150]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 15 * * 4"
+            }
+          ]
+        }
+      },
+      "id": "cron-weekend-promotion",
+      "name": "Thursday 3pm - Weekend Promotion",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 1350]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Customers",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "AND({Status} = 'Regular', DATETIME_DIFF(NOW(), {Last Visit}, 'days') >= 14)"
+        }
+      },
+      "id": "airtable-regular-customers",
+      "name": "Get Regular Customers (14+ days)",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 1350]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hey {{ $json.Name }}! 😊\n\nWe miss you at {{BUSINESS_NAME}}!\n\n🍽️ THIS WEEKEND ONLY:\n{{SPECIAL_OFFER}}\n\nBook now - weekends fill up fast!\n\nReply RESERVE or call {{PHONE}}\n\nHope to see you soon!\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-weekend-promo",
+      "name": "Weekend Special Offer",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 1350]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 11 * * 2"
+            }
+          ]
+        }
+      },
+      "id": "cron-loyalty-program",
+      "name": "Tuesday 11am - Loyalty Program Updates",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 1550]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Customers",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "OR(MOD({Visit Count}, 5) = 0, {Loyalty Points} >= 100)"
+        }
+      },
+      "id": "airtable-loyalty-milestones",
+      "name": "Get Loyalty Milestones",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 1550]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hey {{ $json.Name }}! 🎉\n\nYOU'RE AWESOME! You've been to {{BUSINESS_NAME}} {{$json['Visit Count']}} times!\n\n🎁 Loyalty Reward: {{LOYALTY_REWARD}}\n\nJust show this text next time you visit!\n\nThanks for being part of our family! 💚\n\n- The {{BUSINESS_NAME}} Team",
+        "options": {}
+      },
+      "id": "sms-loyalty-reward",
+      "name": "Loyalty Milestone Reward",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 1550]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 14 * * 1,3,5"
+            }
+          ]
+        }
+      },
+      "id": "cron-slow-hours-fill",
+      "name": "Mon/Wed/Fri 2pm - Fill Slow Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 1750]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Customers",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "{Status} = 'Regular'"
+        }
+      },
+      "id": "airtable-regular-all",
+      "name": "Get All Regular Customers",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 1750]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hey {{ $json.Name }}! ⚡\n\nLAST-MINUTE AVAILABILITY!\n\nWe have tables open TONIGHT from 5-7pm.\n\n🎁 Come during happy hour:\n• {{HAPPY_HOUR_SPECIAL}}\n\nFirst come, first served!\n\nReply YES if you're coming! 🍽️\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-last-minute-availability",
+      "name": "Last-Minute Availability Alert",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 1750]
+    }
+  ],
+  "connections": {
+    "Incoming Message": {
+      "main": [
+        [
+          {
+            "node": "Detect Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Intent": {
+      "main": [
+        [
+          {
+            "node": "Reservation Flow Start",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Auto-Reply - General",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-Reply - General": {
+      "main": [
+        [
+          {
+            "node": "Log Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reservation Flow Start": {
+      "main": [
+        [
+          {
+            "node": "Log Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 9am - Reservation Reminders": {
+      "main": [
+        [
+          {
+            "node": "Get Today's Reservations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Today's Reservations": {
+      "main": [
+        [
+          {
+            "node": "Same-Day Reservation Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 15min - Waitlist Management": {
+      "main": [
+        [
+          {
+            "node": "Get Ready Tables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Ready Tables": {
+      "main": [
+        [
+          {
+            "node": "Table Ready Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 8pm - Post-Dining Follow-Up": {
+      "main": [
+        [
+          {
+            "node": "Get Today's Completed Reservations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Today's Completed Reservations": {
+      "main": [
+        [
+          {
+            "node": "Post-Dining Review Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1st of Month - Birthday Messages": {
+      "main": [
+        [
+          {
+            "node": "Get Birthday Customers This Month",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Birthday Customers This Month": {
+      "main": [
+        [
+          {
+            "node": "Birthday Offer Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Thursday 3pm - Weekend Promotion": {
+      "main": [
+        [
+          {
+            "node": "Get Regular Customers (14+ days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Regular Customers (14+ days)": {
+      "main": [
+        [
+          {
+            "node": "Weekend Special Offer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tuesday 11am - Loyalty Program Updates": {
+      "main": [
+        [
+          {
+            "node": "Get Loyalty Milestones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Loyalty Milestones": {
+      "main": [
+        [
+          {
+            "node": "Loyalty Milestone Reward",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mon/Wed/Fri 2pm - Fill Slow Hours": {
+      "main": [
+        [
+          {
+            "node": "Get All Regular Customers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Regular Customers": {
+      "main": [
+        [
+          {
+            "node": "Last-Minute Availability Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 8,
+  "updatedAt": "2025-11-22T00:00:00.000Z",
+  "versionId": "1",
+  "meta": {
+    "templateCreatedBy": "BenBuildsBiz",
+    "description": "Complete restaurant automation: reservations, waitlist, reviews, birthdays, loyalty program, weekend promotions",
+    "instructions": "1. Import this workflow 2. Replace all {{VARIABLES}} 3. Add Twilio + Airtable credentials 4. Activate",
+    "features": [
+      "Intent detection (reservation vs hours vs menu)",
+      "Same-day reservation reminders",
+      "Waitlist management (every 15 minutes)",
+      "Post-dining review requests",
+      "Birthday month offers",
+      "Weekend promotion campaigns",
+      "Loyalty milestone rewards",
+      "Last-minute availability alerts"
+    ],
+    "airtableTables": ["Customers", "Reservations", "Waitlist"],
+    "requiredFields": {
+      "Customers": ["Phone", "Name", "First Contact", "Last Message", "Status", "Source", "Birthday", "Last Visit", "Visit Count", "Loyalty Points"],
+      "Reservations": ["Phone", "Name", "Date", "Time", "Party Size", "Status", "Reminder Sent", "Follow-Up Sent"],
+      "Waitlist": ["Phone", "Name", "Party Size", "Status", "Notified"]
+    }
+  }
+}
+

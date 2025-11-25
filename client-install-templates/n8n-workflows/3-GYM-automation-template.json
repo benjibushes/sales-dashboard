@@ -1,0 +1,723 @@
+{
+  "name": "{{BUSINESS_NAME}} - Gym Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "incoming-gym",
+        "options": {}
+      },
+      "id": "webhook-incoming",
+      "name": "Incoming Message",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.From }}",
+        "message": "=Hey! Thanks for texting {{BUSINESS_NAME}}! 💪\n\nWant to:\n📅 Book a class? Reply CLASS\n💳 Join/renew? Reply JOIN\n❓ Questions? We'll respond ASAP!\n\nLet's get after it! 🔥\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-auto-reply",
+      "name": "Auto-Reply",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Members",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Phone": "={{ $json.From }}",
+            "First Contact": "={{ $now }}",
+            "Last Message": "={{ $json.Body }}",
+            "Status": "Prospect"
+          }
+        },
+        "options": {}
+      },
+      "id": "airtable-log",
+      "name": "Log Contact",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 17 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-class-reminders",
+      "name": "Daily 5pm - Tomorrow's Classes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 500]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Class Bookings",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "AND(IS_SAME({Class Date}, DATEADD(TODAY(), 1, 'days'), 'day'), {Status} = 'Booked', {Reminder Sent} = FALSE())"
+        }
+      },
+      "id": "airtable-tomorrow-classes",
+      "name": "Get Tomorrow's Classes",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 500]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hey {{ $json.Name }}! 💪\n\nYou're signed up for {{$json['Class Name']}} tomorrow at {{$json.Time}}!\n\n🔥 Coach: {{$json.Coach}}\n📍 {{BUSINESS_NAME}}\n👟 Bring water + towel\n\nGonna be a GREAT workout! See you there!\n\nCan't make it? Cancel 2hrs before so others can grab your spot.\n\nReply CONFIRM or CANCEL\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-class-reminder",
+      "name": "Class Reminder (24hr)",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 500]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/30 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-2hr-reminder",
+      "name": "Every 30min - 2hr Class Reminders",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 700]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Class Bookings",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "AND(DATETIME_DIFF({Class DateTime}, NOW(), 'hours') <= 2, DATETIME_DIFF({Class DateTime}, NOW(), 'hours') > 1.5, {2hr Reminder Sent} = FALSE())"
+        }
+      },
+      "id": "airtable-2hr-classes",
+      "name": "Get Classes in 2hrs",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 700]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "={{ $json.Name }}! Class in 2 hours! 🔥\n\n⏰ {{$json['Class Name']}} at {{$json.Time}}\n💪 Let's DO THIS!\n\nSee you soon!",
+        "options": {}
+      },
+      "id": "sms-2hr-reminder",
+      "name": "2hr Pre-Class Hype",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 700]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 20 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-milestone-check",
+      "name": "Daily 8pm - Milestone Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 900]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Members",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "OR(AND({Total Classes} = 10, {10-Class Celebrated} = FALSE()), AND({Total Classes} = 25, {25-Class Celebrated} = FALSE()), AND({Total Classes} = 50, {50-Class Celebrated} = FALSE()), AND({Total Classes} = 100, {100-Class Celebrated} = FALSE()))"
+        }
+      },
+      "id": "airtable-milestones",
+      "name": "Get Milestone Achievers",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 900]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "={{ $json.Name }}!! 🎉🏆🔥\n\nYOU JUST HIT {{$json['Total Classes']}} CLASSES!\n\nThat's INCREDIBLE dedication! You're crushing it!\n\n💪 You're stronger than you were {{$json['Total Classes']}} workouts ago\n🔥 You showed up when others quit\n⭐ You're in the top 5% of members\n\nKeep going! Next milestone: {{$json['Total Classes'] + 10}} classes!\n\nWe're so proud of you! 💚\n\n- The {{BUSINESS_NAME}} Team",
+        "options": {}
+      },
+      "id": "sms-milestone-celebration",
+      "name": "Milestone Celebration",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 900]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-inactivity-check",
+      "name": "Daily 9am - Inactivity Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 1100]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Members",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "AND({Status} = 'Active', DATETIME_DIFF(NOW(), {Last Class}, 'days') = 7, {7-Day Inactive Sent} = FALSE())"
+        }
+      },
+      "id": "airtable-7day-inactive",
+      "name": "Get 7-Day Inactive Members",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 1100]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hey {{ $json.Name }}! 👋\n\nWe haven't seen you in a week - everything okay?\n\nLife gets busy, we get it! But don't lose your momentum! 💪\n\nThe hardest part is walking through the door. Once you're here, you'll be glad you came.\n\nWhat class can we book you into this week?\n\nReply with a day/time or just show up - we'll be hyped to see you! 🔥\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-7day-checkin",
+      "name": "7-Day Inactive Check-In",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 1100]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 25 * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-membership-renewal",
+      "name": "25th of Month - Membership Renewals",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 1300]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Members",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "AND({Status} = 'Active', DATETIME_DIFF({Renewal Date}, TODAY(), 'days') <= 5)"
+        }
+      },
+      "id": "airtable-renewals-due",
+      "name": "Get Renewals Due",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 1300]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hey {{ $json.Name }}! 💳\n\nYour {{BUSINESS_NAME}} membership renews on {{$json['Renewal Date']}}.\n\nYour card ending in {{$json['Card Last 4']}} will be charged ${{$json['Amount']}}.\n\nNeed to update payment? Reply UPDATE or visit your account: {{MEMBER_PORTAL_LINK}}\n\nThanks for being part of the family! Keep crushing it! 💪\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-renewal-reminder",
+      "name": "Membership Renewal Reminder",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 1300]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 11 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-payment-failed",
+      "name": "Daily 11am - Payment Failures",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 1500]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Members",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "AND({Payment Status} = 'Failed', DATETIME_DIFF(NOW(), {Payment Failed Date}, 'days') <= 3, {Payment Failure Notified} = FALSE())"
+        }
+      },
+      "id": "airtable-payment-failed",
+      "name": "Get Failed Payments",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 1500]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hey {{ $json.Name }},\n\nHeads up - your membership payment didn't go through. 💳\n\nThis happens! Usually it's:\n• Card expired\n• Insufficient funds\n• Bank declined\n\nUpdate your payment to keep your membership active:\n{{MEMBER_PORTAL_LINK}}\n\nNeed help? Call or text us!\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-payment-failed",
+      "name": "Payment Failed Alert",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 1500]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 1 * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-referral-ask",
+      "name": "Monthly - Referral Campaign",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 1700]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Members",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "AND({Status} = 'Active', {Total Classes} >= 20, {Last Referral Ask} = BLANK())"
+        }
+      },
+      "id": "airtable-referral-candidates",
+      "name": "Get Happy Members (20+ classes)",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 1700]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hey {{ $json.Name }}! 💪\n\nYou've been CRUSHING it at {{BUSINESS_NAME}}!\n\n🎁 Want to help a friend get in shape?\n\nRefer them this month:\n• They get 2 weeks FREE\n• You get $50 gym credit\n• Win-win! 🎉\n\nJust have them text FRIEND to {{PHONE}} and mention your name!\n\nYour friends will thank you. Your future self will too. 💚\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-referral-ask",
+      "name": "Referral Program Invite",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 1700]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 18 * * 0"
+            }
+          ]
+        }
+      },
+      "id": "cron-weekly-motivation",
+      "name": "Sunday 6pm - Weekly Motivation",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 1900]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Members",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "{Status} = 'Active'"
+        }
+      },
+      "id": "airtable-active-members",
+      "name": "Get All Active Members",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 1900]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hey {{ $json.Name }}! 🔥\n\nNEW WEEK = NEW OPPORTUNITY!\n\nLast week you crushed {{$json['Classes This Week']}} classes. Let's beat that this week!\n\n💪 Your body can do it\n🧠 Your mind just needs to believe it\n👊 We're here to push you\n\nWhat time are you coming in Monday? Lock it in now! 📅\n\nLet's GO! 💚\n\n- Team {{BUSINESS_NAME}}",
+        "options": {}
+      },
+      "id": "sms-weekly-motivation",
+      "name": "Weekly Motivation Blast",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 1900]
+    }
+  ],
+  "connections": {
+    "Incoming Message": {
+      "main": [
+        [
+          {
+            "node": "Auto-Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-Reply": {
+      "main": [
+        [
+          {
+            "node": "Log Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 5pm - Tomorrow's Classes": {
+      "main": [
+        [
+          {
+            "node": "Get Tomorrow's Classes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Tomorrow's Classes": {
+      "main": [
+        [
+          {
+            "node": "Class Reminder (24hr)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 30min - 2hr Class Reminders": {
+      "main": [
+        [
+          {
+            "node": "Get Classes in 2hrs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Classes in 2hrs": {
+      "main": [
+        [
+          {
+            "node": "2hr Pre-Class Hype",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 8pm - Milestone Check": {
+      "main": [
+        [
+          {
+            "node": "Get Milestone Achievers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Milestone Achievers": {
+      "main": [
+        [
+          {
+            "node": "Milestone Celebration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 9am - Inactivity Check": {
+      "main": [
+        [
+          {
+            "node": "Get 7-Day Inactive Members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get 7-Day Inactive Members": {
+      "main": [
+        [
+          {
+            "node": "7-Day Inactive Check-In",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "25th of Month - Membership Renewals": {
+      "main": [
+        [
+          {
+            "node": "Get Renewals Due",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Renewals Due": {
+      "main": [
+        [
+          {
+            "node": "Membership Renewal Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 11am - Payment Failures": {
+      "main": [
+        [
+          {
+            "node": "Get Failed Payments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Failed Payments": {
+      "main": [
+        [
+          {
+            "node": "Payment Failed Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Monthly - Referral Campaign": {
+      "main": [
+        [
+          {
+            "node": "Get Happy Members (20+ classes)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Happy Members (20+ classes)": {
+      "main": [
+        [
+          {
+            "node": "Referral Program Invite",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sunday 6pm - Weekly Motivation": {
+      "main": [
+        [
+          {
+            "node": "Get All Active Members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Active Members": {
+      "main": [
+        [
+          {
+            "node": "Weekly Motivation Blast",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 9,
+  "updatedAt": "2025-11-22T00:00:00.000Z",
+  "versionId": "1",
+  "meta": {
+    "templateCreatedBy": "BenBuildsBiz",
+    "description": "Complete gym automation: class reminders, milestone celebrations, inactivity prevention, membership management, referral program",
+    "instructions": "1. Import this workflow 2. Replace all {{VARIABLES}} 3. Add Twilio + Airtable credentials 4. Activate",
+    "features": [
+      "Auto-reply with booking options",
+      "Class reminders (24hr + 2hr before)",
+      "Milestone celebrations (10, 25, 50, 100 classes)",
+      "Inactivity check-in (7 days no attendance)",
+      "Membership renewal reminders (5 days before)",
+      "Payment failure notifications",
+      "Referral program automation",
+      "Weekly motivation messages (Sunday evenings)"
+    ],
+    "airtableTables": ["Members", "Class Bookings"],
+    "requiredFields": {
+      "Members": ["Phone", "Name", "Status", "Total Classes", "Last Class", "Renewal Date", "Card Last 4", "Amount", "Payment Status", "Payment Failed Date", "Classes This Week"],
+      "Class Bookings": ["Phone", "Name", "Class Name", "Class Date", "Time", "Coach", "Status", "Reminder Sent", "2hr Reminder Sent", "Class DateTime"]
+    }
+  }
+}
+

@@ -1,0 +1,203 @@
+{
+  "name": "Reply Handler - Keyword Detection",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "incoming-reply",
+        "options": {}
+      },
+      "id": "webhook-reply",
+      "name": "Incoming Reply/Message",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.item.json.Body.toUpperCase().trim();\nconst from = $input.item.json.From;\n\n// Detect keyword\nlet intent = 'unknown';\nlet response = '';\n\nif (['BOOK', 'BOOKING', 'SCHEDULE', 'APPOINTMENT'].some(word => body.includes(word))) {\n  intent = 'booking';\n  response = `Perfect! Let's get you booked.\\n\\nWhat service do you need?\\n\\nOr call us to book now: {{$env.BUSINESS_PHONE}}`;\n} else if (['CONFIRM', 'CONFIRMED', 'YES'].some(word => body.includes(word))) {\n  intent = 'confirm';\n  response = `Great! You're all confirmed. See you soon! 👍`;\n} else if (['CANCEL', 'CANCELLED', 'RESCHEDULE'].some(word => body.includes(word))) {\n  intent = 'cancel';\n  response = `No problem! To reschedule, call us at {{$env.BUSINESS_PHONE}} or visit our booking page.`;\n} else if (['HOURS', 'OPEN', 'TIME'].some(word => body.includes(word))) {\n  intent = 'hours';\n  response = `We're open:\\nMon-Fri: 9am-7pm\\nSat: 10am-6pm\\nSun: Closed\\n\\n📍 {{$env.ADDRESS}}`;\n} else if (['MENU', 'PRICE', 'COST', 'SERVICES'].some(word => body.includes(word))) {\n  intent = 'services';\n  response = `Check out our services: {{$env.WEBSITE_URL}}\\n\\nOr call us: {{$env.BUSINESS_PHONE}}`;\n} else if (['HELP', 'INFO', 'QUESTION'].some(word => body.includes(word))) {\n  intent = 'help';\n  response = `Happy to help! What do you need to know?\\n\\nOr call us: {{$env.BUSINESS_PHONE}}`;\n} else if (['STOP', 'UNSUBSCRIBE', 'OPTOUT'].some(word => body.includes(word))) {\n  intent = 'optout';\n  response = `You've been removed from our messages. Sorry to see you go!`;\n} else {\n  intent = 'human_needed';\n  response = `Thanks for your message! Someone from our team will respond shortly.\\n\\nNeed immediate help? Call {{$env.BUSINESS_PHONE}}`;\n}\n\nreturn {\n  From: from,\n  Body: body,\n  intent: intent,\n  autoResponse: response,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "detect-keyword",
+      "name": "Detect Intent from Keywords",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "={{$env.BUSINESS_PHONE}}",
+        "toPhoneNumber": "={{ $json.From }}",
+        "message": "={{ $json.autoResponse }}",
+        "options": {}
+      },
+      "id": "send-auto-response",
+      "name": "Send Auto Response",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "application": {
+          "__rl": true,
+          "value": "={{$env.AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Conversations",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Phone": "={{ $json.From }}",
+            "Timestamp": "={{ $json.timestamp }}",
+            "Incoming Message": "={{ $json.Body }}",
+            "Intent Detected": "={{ $json.intent }}",
+            "Auto Response": "={{ $json.autoResponse }}",
+            "Needs Human": "={{ $json.intent === 'human_needed' ? 'TRUE' : 'FALSE' }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "log-conversation",
+      "name": "Log Conversation",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.intent }}",
+              "operation": "equals",
+              "value2": "human_needed"
+            }
+          ]
+        }
+      },
+      "id": "if-needs-human",
+      "name": "Needs Human Response?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 600]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env.BUSINESS_EMAIL}}",
+        "toEmail": "={{$env.OWNER_EMAIL}}",
+        "subject": "🚨 Customer Reply Needs Your Attention",
+        "emailType": "html",
+        "message": "=<html>\n<body style=\"font-family: Arial, sans-serif;\">\n  <h2>Customer Message Needs Response</h2>\n  <p><strong>From:</strong> {{ $json.From }}</p>\n  <p><strong>Message:</strong> {{ $json.Body }}</p>\n  <p><strong>Time:</strong> {{ $json.timestamp }}</p>\n  \n  <p><strong>Auto-response sent:</strong> {{ $json.autoResponse }}</p>\n  \n  <p style=\"background: #fff3cd; padding: 10px; border-left: 4px solid #ffc107;\">\n    ⚠️ This customer's message didn't match any keywords. Please respond personally!\n  </p>\n  \n  <a href=\"tel:{{ $json.From }}\" style=\"background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 10px;\">Call Customer</a>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "notify-owner",
+      "name": "Notify Owner (Email)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [850, 550]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "={{$env.BUSINESS_PHONE}}",
+        "toPhoneNumber": "={{$env.OWNER_PERSONAL_PHONE}}",
+        "message": "=🚨 Customer reply needs attention!\n\nFrom: {{ $json.From }}\nMessage: {{ $json.Body }}\n\nRespond ASAP!",
+        "options": {}
+      },
+      "id": "notify-owner-sms",
+      "name": "Notify Owner (SMS)",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [850, 650]
+    }
+  ],
+  "connections": {
+    "Incoming Reply/Message": {
+      "main": [
+        [
+          {
+            "node": "Detect Intent from Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Intent from Keywords": {
+      "main": [
+        [
+          {
+            "node": "Send Auto Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Needs Human Response?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Auto Response": {
+      "main": [
+        [
+          {
+            "node": "Log Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Human Response?": {
+      "main": [
+        [
+          {
+            "node": "Notify Owner (Email)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify Owner (SMS)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["Module", "Reply-Handler", "Essential"],
+  "updatedAt": "2025-11-22T00:00:00.000Z",
+  "versionId": "1",
+  "meta": {
+    "module": {
+      "name": "Reply Handler - Keyword Detection",
+      "price": "$300",
+      "installTime": "25 minutes",
+      "benefit": "Handle customer replies automatically with keyword detection",
+      "requirements": ["Twilio", "Airtable", "SMTP"],
+      "compatible": "REQUIRED if your workflows promise 'Reply BOOK' functionality",
+      "keywords": ["BOOK", "CONFIRM", "CANCEL", "RESCHEDULE", "HOURS", "MENU", "HELP", "STOP"],
+      "fallback": "Notifies owner when keywords not matched"
+    },
+    "setup": {
+      "twilioConfig": "Point your Twilio number's incoming webhook to this workflow's webhook URL",
+      "airtableTable": "Create 'Conversations' table with fields: Phone, Timestamp, Incoming Message, Intent Detected, Auto Response, Needs Human",
+      "envVars": ["BUSINESS_PHONE", "BUSINESS_EMAIL", "OWNER_EMAIL", "OWNER_PERSONAL_PHONE", "WEBSITE_URL", "ADDRESS", "AIRTABLE_BASE_ID"]
+    },
+    "notes": "This is the MISSING PIECE that makes 'Reply BOOK' messages actually work!"
+  }
+}
+

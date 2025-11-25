@@ -1,0 +1,710 @@
+{
+  "name": "{{BUSINESS_NAME}} - Med Spa Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "incoming-medspa",
+        "options": {}
+      },
+      "id": "webhook-incoming",
+      "name": "Incoming SMS/Call",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.Body.toLowerCase() }}",
+              "operation": "contains",
+              "value2": "book"
+            }
+          ]
+        }
+      },
+      "id": "switch-intent",
+      "name": "Detect Intent",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.From }}",
+        "message": "=Hi! Thanks for texting {{BUSINESS_NAME}}! 💉\n\nWe specialize in:\n✨ Botox & Fillers\n💆 Facials & Peels\n💉 IV Therapy\n✂️ Body Contouring\n\nWant to book? Text BOOK\nHave questions? We'll respond within 30 min.\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-auto-reply",
+      "name": "Auto-Reply - General",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.From }}",
+        "message": "=Perfect! Let's get you booked. 📅\n\nWhat are you interested in?\n\n1️⃣ Botox/Fillers\n2️⃣ IV Therapy\n3️⃣ Facials\n4️⃣ Body Contouring\n5️⃣ Not sure - need consult\n\nReply with a number or call us: {{PHONE}}\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-booking-intent",
+      "name": "Booking Flow Start",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Phone": "={{ $json.From }}",
+            "First Contact": "={{ $now }}",
+            "Last Message": "={{ $json.Body }}",
+            "Status": "New Lead",
+            "Source": "Inbound SMS",
+            "Lead Score": "=50"
+          }
+        },
+        "options": {}
+      },
+      "id": "airtable-log-lead",
+      "name": "Log New Lead",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-pre-treatment",
+      "name": "Daily 8am - Pre-Treatment Prep",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 600]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Appointments",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "AND(IS_AFTER({Appointment Date}, TODAY()), IS_BEFORE({Appointment Date}, DATEADD(TODAY(), 1, 'days')), {Pre-Treatment Sent} = FALSE())"
+        }
+      },
+      "id": "airtable-get-tomorrow",
+      "name": "Get Tomorrow's Treatments",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 600]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.Treatment }}",
+              "operation": "equals",
+              "value2": "Botox"
+            },
+            {
+              "value1": "={{ $json.Treatment }}",
+              "operation": "contains",
+              "value2": "IV"
+            }
+          ]
+        }
+      },
+      "id": "switch-treatment-type",
+      "name": "Route by Treatment",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [650, 600]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hi {{ $json['Customer Name'] }}! 💉\n\nYour {{$json.Treatment}} appointment is tomorrow at {{$json.Time}}!\n\n📋 Quick prep checklist:\n✓ Avoid alcohol 24hrs before\n✓ Skip blood thinners (Advil, aspirin)\n✓ Come with clean face (no makeup)\n✓ Eat something light beforehand\n✓ Bring sunglasses (slight redness is normal)\n\nQuestions? Text us anytime!\n\nSee you tomorrow! ✨\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-botox-prep",
+      "name": "Botox/Filler Prep Instructions",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [850, 500]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hi {{ $json['Customer Name'] }}! 💧\n\nYour IV Therapy session is tomorrow at {{$json.Time}}!\n\n📋 How to prepare:\n✓ Drink 16oz water this morning\n✓ Eat a light meal 1-2hrs before\n✓ Wear comfy clothes (loose sleeves)\n✓ Plan to relax for 45-60 min\n✓ Bring headphones or a book if you like!\n\nWe'll take great care of you. 💚\n\nSee you tomorrow!\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-iv-prep",
+      "name": "IV Therapy Prep Instructions",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [850, 600]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hi {{ $json['Customer Name'] }}! ✨\n\nYour {{$json.Treatment}} is tomorrow at {{$json.Time}}!\n\n📋 Quick prep:\n✓ Clean, makeup-free face\n✓ Avoid sun exposure today\n✓ Stay hydrated\n✓ Arrive 10 min early for paperwork\n\nWe're excited to see you!\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-general-prep",
+      "name": "General Treatment Prep",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [850, 700]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 */2 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-post-treatment",
+      "name": "Every 2hrs - Post-Treatment Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 900]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Appointments",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "AND({Status} = 'Completed', DATETIME_DIFF(NOW(), {Completed Time}, 'hours') >= 2, DATETIME_DIFF(NOW(), {Completed Time}, 'hours') < 4, {Post-Treatment Sent} = FALSE())"
+        }
+      },
+      "id": "airtable-get-completed-2hr",
+      "name": "Get Treatments Completed 2hrs Ago",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 900]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hi {{ $json['Customer Name'] }}! 💕\n\nHow are you feeling after your {{$json.Treatment}} today?\n\nAftercare reminders:\n✓ No touching/rubbing area for 24hrs\n✓ Stay upright for 4 hours (no lying down)\n✓ Avoid strenuous exercise today\n✓ Skip alcohol for 24hrs\n✓ Slight bruising/redness is normal\n\nAny concerns? Text us anytime - we're here!\n\nResults show fully in 7-14 days. 🌟\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-post-treatment-check",
+      "name": "Post-Treatment Check-In",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 900]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-package-upsell",
+      "name": "Daily 10am - Package Upsell Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 1150]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Customers",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "AND({Visit Count} = 1, DATETIME_DIFF(NOW(), {Last Visit}, 'days') >= 7, DATETIME_DIFF(NOW(), {Last Visit}, 'days') <= 10, {Package Offered} = FALSE())"
+        }
+      },
+      "id": "airtable-package-candidates",
+      "name": "Get Package Candidates (1 visit, 7-10 days)",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 1150]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hi {{ $json.Name }}! ✨\n\nHope you're loving your results from last week!\n\n💡 Pro tip: Most clients see BEST results with a series of treatments.\n\n🎁 Our package deal:\n• 3 sessions: Save 15%\n• 6 sessions: Save 25%\n• Lock in today's pricing\n• Priority booking\n\nInterested? Reply PACKAGE for details!\n\nOur top clients ALL do packages - the results compound beautifully. 💕\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-package-upsell",
+      "name": "Package Upsell (After 1st Visit)",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 1150]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 19 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-review-request",
+      "name": "Daily 7pm - Review Requests",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 1400]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Appointments",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "AND({Status} = 'Completed', DATETIME_DIFF(NOW(), {Completed Time}, 'days') = 14, {Review Requested} = FALSE())"
+        }
+      },
+      "id": "airtable-review-ready",
+      "name": "Get 2-Week Post Treatment",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 1400]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hi {{ $json['Customer Name'] }}! 🌟\n\nIt's been 2 weeks since your {{$json.Treatment}} - you should be seeing amazing results by now!\n\nHow are you feeling? We'd love to hear! 💬\n\nIf you're happy with your results, would you help other people find us? A quick Google review means the world:\n\n{{GOOGLE_REVIEW_LINK}}\n\nTakes 30 seconds. You're the best! 💕\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-review-request-14day",
+      "name": "Review Request (14 Days Post)",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 1400]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "cron-treatment-reminder",
+      "name": "Every Monday 9am - Treatment Cycle Reminder",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 1650]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Customers",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "AND({Treatment Type} = 'Botox', DATETIME_DIFF(NOW(), {Last Visit}, 'days') >= 90, DATETIME_DIFF(NOW(), {Last Visit}, 'days') <= 100)"
+        }
+      },
+      "id": "airtable-botox-due",
+      "name": "Get Botox Clients Due (90-100 days)",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 1650]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hi {{ $json.Name }}! ✨\n\nJust checking in! It's been about 3 months since your last Botox treatment.\n\nYou might be noticing movement returning - that's totally normal!\n\nMost clients come in every 3-4 months for best results.\n\nWant to book your next session? We have openings this week!\n\nReply BOOK or call {{PHONE}}\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-botox-cycle-reminder",
+      "name": "Botox Cycle Reminder (90 days)",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 1650]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 1 * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-vip-appreciation",
+      "name": "Monthly - VIP Appreciation",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 1900]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "application": {
+          "__rl": true,
+          "value": "{{AIRTABLE_BASE_ID}}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Customers",
+          "mode": "list"
+        },
+        "options": {
+          "filterByFormula": "AND({Status} = 'VIP', {Lifetime Value} > 1000)"
+        }
+      },
+      "id": "airtable-vip-customers",
+      "name": "Get VIP Customers ($1000+ LTV)",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [450, 1900]
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.accountSid }}",
+        "fromPhoneNumber": "{{PHONE}}",
+        "toPhoneNumber": "={{ $json.Phone }}",
+        "message": "=Hi {{ $json.Name }}! 💎\n\nYou're one of our most valued clients and we wanted to say THANK YOU!\n\n🎁 This month, VIP clients get:\n• 15% off any treatment\n• Priority booking\n• Complimentary consultation for new treatments\n• First access to new services\n\nJust mention \"VIP\" when you book!\n\nYou make what we do so rewarding. Thank you for trusting us with your beauty journey! 💕\n\n- {{OWNER_NAME}}",
+        "options": {}
+      },
+      "id": "sms-vip-appreciation",
+      "name": "VIP Monthly Thank You + Perk",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [650, 1900]
+    }
+  ],
+  "connections": {
+    "Incoming SMS/Call": {
+      "main": [
+        [
+          {
+            "node": "Detect Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Intent": {
+      "main": [
+        [
+          {
+            "node": "Booking Flow Start",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Auto-Reply - General",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-Reply - General": {
+      "main": [
+        [
+          {
+            "node": "Log New Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Booking Flow Start": {
+      "main": [
+        [
+          {
+            "node": "Log New Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 8am - Pre-Treatment Prep": {
+      "main": [
+        [
+          {
+            "node": "Get Tomorrow's Treatments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Tomorrow's Treatments": {
+      "main": [
+        [
+          {
+            "node": "Route by Treatment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Treatment": {
+      "main": [
+        [
+          {
+            "node": "Botox/Filler Prep Instructions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IV Therapy Prep Instructions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "General Treatment Prep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 2hrs - Post-Treatment Check": {
+      "main": [
+        [
+          {
+            "node": "Get Treatments Completed 2hrs Ago",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Treatments Completed 2hrs Ago": {
+      "main": [
+        [
+          {
+            "node": "Post-Treatment Check-In",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 10am - Package Upsell Check": {
+      "main": [
+        [
+          {
+            "node": "Get Package Candidates (1 visit, 7-10 days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Package Candidates (1 visit, 7-10 days)": {
+      "main": [
+        [
+          {
+            "node": "Package Upsell (After 1st Visit)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 7pm - Review Requests": {
+      "main": [
+        [
+          {
+            "node": "Get 2-Week Post Treatment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get 2-Week Post Treatment": {
+      "main": [
+        [
+          {
+            "node": "Review Request (14 Days Post)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every Monday 9am - Treatment Cycle Reminder": {
+      "main": [
+        [
+          {
+            "node": "Get Botox Clients Due (90-100 days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Botox Clients Due (90-100 days)": {
+      "main": [
+        [
+          {
+            "node": "Botox Cycle Reminder (90 days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Monthly - VIP Appreciation": {
+      "main": [
+        [
+          {
+            "node": "Get VIP Customers ($1000+ LTV)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get VIP Customers ($1000+ LTV)": {
+      "main": [
+        [
+          {
+            "node": "VIP Monthly Thank You + Perk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 7,
+  "updatedAt": "2025-11-22T00:00:00.000Z",
+  "versionId": "1",
+  "meta": {
+    "templateCreatedBy": "BenBuildsBiz",
+    "description": "Complete med spa automation: lead qualification, pre/post treatment care, package upsells, review requests, VIP program",
+    "instructions": "1. Import this workflow 2. Replace all {{VARIABLES}} 3. Add Twilio + Airtable credentials 4. Activate",
+    "features": [
+      "Intent-based auto-replies (booking vs general inquiry)",
+      "Treatment-specific prep instructions (Botox, IV, Facials)",
+      "2-hour post-treatment check-in with aftercare",
+      "Package upsell automation (7-10 days after first visit)",
+      "Review requests at optimal time (14 days post-treatment)",
+      "Treatment cycle reminders (Botox every 90 days)",
+      "VIP customer appreciation program"
+    ],
+    "airtableTables": ["Leads", "Appointments", "Customers"],
+    "requiredFields": {
+      "Customers": ["Phone", "Name", "Status", "Visit Count", "Lifetime Value", "Treatment Type", "Last Visit"],
+      "Appointments": ["Phone", "Customer Name", "Appointment Date", "Time", "Treatment", "Status", "Pre-Treatment Sent", "Post-Treatment Sent", "Review Requested", "Completed Time"],
+      "Leads": ["Phone", "First Contact", "Last Message", "Status", "Source", "Lead Score"]
+    }
+  }
+}
+

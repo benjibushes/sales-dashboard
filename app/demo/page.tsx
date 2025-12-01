@@ -29,7 +29,7 @@ export default function DemoPage() {
   const handleReset = () => {
     setCurrentLead(null);
     setShowDemo(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Don't auto-scroll - let user stay where they are
   };
 
   return (

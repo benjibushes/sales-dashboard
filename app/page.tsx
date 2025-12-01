@@ -12,9 +12,6 @@ export default function Home() {
             BenBuildsBiz
           </Link>
           <nav className="flex gap-6">
-            <Link href="/demo" className="text-sm text-gray-400 hover:text-white transition-colors">
-              Demo
-            </Link>
             <Link href="/workwithben" className="text-sm text-gray-400 hover:text-white transition-colors">
               Work With Ben
             </Link>
@@ -63,17 +60,11 @@ export default function Home() {
             </div>
           </div>
 
-          {/* CTA Buttons */}
-          <div className="pt-8 flex flex-col sm:flex-row gap-4 items-center justify-center">
-            <Link 
-              href="/demo"
-              className="btn-primary text-lg px-10 py-4 shadow-lg hover:shadow-xl w-full sm:w-auto"
-            >
-              Try Interactive Demo
-            </Link>
+          {/* CTA Button */}
+          <div className="pt-8 flex justify-center">
             <Link 
               href="/workwithben"
-              className="px-10 py-4 bg-charcoal-800 hover:bg-charcoal-700 border border-charcoal-700 rounded-lg font-medium transition-colors w-full sm:w-auto"
+              className="btn-primary text-lg px-10 py-4 shadow-lg hover:shadow-xl w-full sm:w-auto"
             >
               Chat with Ben
             </Link>
@@ -82,7 +73,7 @@ export default function Home() {
           {/* Social Proof */}
           <div className="pt-12 space-y-4">
             <p className="text-sm text-gray-500">
-              See exactly how it works for your business in 30 seconds
+              Chat with me directly to discuss your business needs
             </p>
             <div className="flex items-center justify-center gap-8 text-sm text-gray-400">
               <div className="flex items-center gap-2">

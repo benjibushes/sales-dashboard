@@ -13,9 +13,6 @@ export default function WorkWithBenPage() {
             BenBuildsBiz
           </Link>
           <nav className="flex gap-6">
-            <Link href="/demo" className="text-sm text-gray-400 hover:text-white transition-colors">
-              Demo
-            </Link>
             <Link href="/workwithben" className="text-sm text-white font-semibold">
               Work With Ben
             </Link>
@@ -113,17 +110,6 @@ What kind of business are you running? Let's see how I can help!"
           </div>
         </div>
 
-        {/* Bottom CTA */}
-        <div className="mt-16 text-center space-y-4 p-8 bg-charcoal-900 rounded-xl border border-charcoal-800">
-          <h2 className="text-2xl font-bold">Haven't tried the demo yet?</h2>
-          <p className="text-gray-400">See exactly how the automation works in 30 seconds</p>
-          <Link 
-            href="/demo"
-            className="btn-primary inline-block"
-          >
-            Try Interactive Demo
-          </Link>
-        </div>
       </main>
 
       {/* Footer */}

@@ -40,11 +40,21 @@ export default function DemoPage() {
           <Link href="/" className="text-xl font-bold hover:text-gray-300 transition-colors">
             BenBuildsBiz
           </Link>
-          {currentLead && (
-            <span className="text-sm text-gray-400">
-              Lead: {currentLead.businessName}
-            </span>
-          )}
+          <div className="flex items-center gap-6">
+            <nav className="hidden sm:flex gap-6">
+              <Link href="/demo" className="text-sm text-white font-semibold">
+                Demo
+              </Link>
+              <Link href="/workwithben" className="text-sm text-gray-400 hover:text-white transition-colors">
+                Work With Ben
+              </Link>
+            </nav>
+            {currentLead && (
+              <span className="text-sm text-gray-400">
+                Lead: {currentLead.businessName}
+              </span>
+            )}
+          </div>
         </div>
       </header>
 

@@ -9,28 +9,28 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        charcoal: {
-          50: '#f5f5f5',
-          100: '#e0e0e0',
-          200: '#cccccc',
-          300: '#b3b3b3',
-          400: '#999999',
-          500: '#808080',
-          600: '#666666',
-          700: '#4d4d4d',
-          800: '#333333',
-          900: '#1a1a1a',
-          950: '#0d0d0d',
-        },
+        // Clean Black & White System
+        'true-black': '#000000',
+        'off-black': '#0A0A0A',
+        'charcoal': '#1A1A1A',
+        'steel': '#2A2A2A',
+        'concrete': '#3A3A3A',
+        'smoke': '#666666',
+        'ash': '#999999',
+        'silver': '#CCCCCC',
+        'off-white': '#F5F5F0',
+        'cream': '#FAFAF5',
+        'pure-white': '#FFFFFF',
       },
-      animation: {
-        'pulse-success': 'pulse-success 0.6s ease-in-out',
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Courier New', 'monospace'],
       },
-      keyframes: {
-        'pulse-success': {
-          '0%, 100%': { transform: 'scale(1)' },
-          '50%': { transform: 'scale(1.05)' },
-        },
+      maxWidth: {
+        'container': '1280px',
+      },
+      borderWidth: {
+        '3': '3px',
       },
     },
   },

@@ -1,126 +1,278 @@
-"use client";
-
-import { useState } from "react";
-import { LeadData } from "@/types";
-import LeadIntakeForm from "@/components/LeadIntakeForm";
-import DemoPanel from "@/components/DemoPanel";
-import SystemStackDisplay from "@/components/SystemStackDisplay";
-import VisualExplainer from "@/components/VisualExplainer";
-import StickyFooter from "@/components/StickyFooter";
-import Link from "next/link";
+import Link from 'next/link';
+import { demoContent } from '@/lib/demo-content';
+import SystemCard from '@/components/demo/SystemCard';
+import PhaseCard from '@/components/demo/PhaseCard';
+import MetricCard from '@/components/demo/MetricCard';
 
 export default function DemoPage() {
-  const [currentLead, setCurrentLead] = useState<LeadData | null>(null);
-  const [showDemo, setShowDemo] = useState(false);
-
-  const handleLeadCreated = (lead: LeadData) => {
-    setCurrentLead(lead);
-    setShowDemo(true);
-    
-    // Scroll to demo panel smoothly
-    setTimeout(() => {
-      document.getElementById("demo-panel")?.scrollIntoView({ 
-        behavior: "smooth",
-        block: "start"
-      });
-    }, 100);
-  };
-
-  const handleReset = () => {
-    setCurrentLead(null);
-    setShowDemo(false);
-    // Don't auto-scroll - let user stay where they are
-  };
-
   return (
-    <div className="min-h-screen pb-24">
-      {/* Header */}
-      <header className="border-b border-charcoal-800 bg-charcoal-950">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold hover:text-gray-300 transition-colors">
-            BenBuildsBiz
-          </Link>
-          <div className="flex items-center gap-6">
-            <nav className="hidden sm:flex gap-6">
-              <Link href="/demo" className="text-sm text-white font-semibold">
-                Demo
-              </Link>
-              <Link href="/workwithben" className="text-sm text-gray-400 hover:text-white transition-colors">
-                Work With Ben
-              </Link>
-            </nav>
-            {currentLead && (
-              <span className="text-sm text-gray-400">
-                Lead: {currentLead.businessName}
-              </span>
-            )}
+    <div className="bg-white">
+      {/* Hero Section - Optimized for Zoom */}
+      <section className="py-24 lg:py-32">
+        <div className="max-w-6xl mx-auto px-6 lg:px-8">
+          <div className="max-w-4xl">
+            <h1 className="text-6xl lg:text-8xl font-bold text-gray-900 leading-tight mb-8">
+              {demoContent.hero.headline}
+            </h1>
+            <p className="text-2xl text-gray-600 leading-relaxed mb-12">
+              {demoContent.hero.subheadline}
+            </p>
+            <p className="text-xl text-gray-500">
+              Let me walk you through how this system works end-to-end.
+            </p>
           </div>
         </div>
-      </header>
+      </section>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="space-y-8">
-          {/* Page Header */}
-          {!showDemo && (
-            <div className="text-center space-y-3 mb-12">
-              <h1 className="text-4xl md:text-5xl font-bold">
-                Let's Build Your System
-              </h1>
-              <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-                Enter your info below and I'll show you exactly how automation can transform your business
+      {/* The System Section with Figma Embed */}
+      <section className="py-24 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-6 lg:px-8">
+          <h2 className="text-5xl lg:text-6xl font-bold text-gray-900 mb-8">
+            {demoContent.system.title}
+          </h2>
+          
+          <p className="text-xl text-gray-600 leading-relaxed mb-12 max-w-4xl">
+            {demoContent.system.description}
+          </p>
+          
+          {/* Figma Embed - Interactive Diagram */}
+          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <iframe
+              style={{ border: "1px solid rgba(0, 0, 0, 0.1)" }}
+              width="100%"
+              height="600"
+              src={demoContent.system.figmaEmbedUrl}
+              allowFullScreen
+              className="w-full rounded-lg"
+              title="System Diagram"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* What I Set Up Section */}
+      <section className="py-24">
+        <div className="max-w-6xl mx-auto px-6 lg:px-8">
+          <h2 className="text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
+            What I Set Up
+          </h2>
+          <p className="text-xl text-gray-600 mb-16 max-w-3xl">
+            Every system includes these 6 core components, customized for your business and market.
+          </p>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {demoContent.whatISetUp.map((item, index) => (
+              <SystemCard
+                key={index}
+                title={item.title}
+                description={item.description}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 60-Day Launch Plan Section */}
+      <section className="py-24 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-6 lg:px-8">
+          <h2 className="text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
+            60-Day Launch Plan
+          </h2>
+          <p className="text-xl text-gray-600 mb-16 max-w-3xl">
+            We move fast. Here's how we go from zero to a fully operational client acquisition system in 60 days.
+          </p>
+          
+          <div className="grid md:grid-cols-3 gap-10">
+            {demoContent.sixtyDayPlan.map((phase, index) => (
+              <PhaseCard
+                key={index}
+                phase={phase.phase}
+                title={phase.title}
+                deliverables={phase.deliverables}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* What We Measure Section */}
+      <section className="py-24">
+        <div className="max-w-6xl mx-auto px-6 lg:px-8">
+          <h2 className="text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
+            What We Measure
+          </h2>
+          <p className="text-xl text-gray-600 mb-16 max-w-3xl">
+            Every metric tracked, reported weekly, and optimized monthly. No guessing—just data.
+          </p>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {demoContent.metrics.map((metric, index) => (
+              <MetricCard
+                key={index}
+                name={metric.name}
+                definition={metric.definition}
+                description={metric.description}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How I Work Section */}
+      <section className="py-24 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-6 lg:px-8">
+          <h2 className="text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
+            How I Work
+          </h2>
+          <p className="text-xl text-gray-600 mb-16 max-w-3xl">
+            Transparent process, clear expectations, and consistent communication.
+          </p>
+
+          {/* Engagement Structure */}
+          <div className="mb-16">
+            <h3 className="text-3xl font-bold text-gray-900 mb-8">
+              {demoContent.process.engagement.title}
+            </h3>
+            <p className="text-lg text-gray-600 mb-10">
+              {demoContent.process.engagement.description}
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {demoContent.process.engagement.structure.map((item, index) => (
+                <div key={index} className="bg-white border border-gray-200 rounded-lg p-8">
+                  <h4 className="text-xl font-bold text-gray-900 mb-4">
+                    {item.title}
+                  </h4>
+                  <p className="text-gray-600 leading-relaxed">
+                    {item.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Check-ins and Reporting */}
+          <div className="grid md:grid-cols-2 gap-10 mb-16">
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">
+                {demoContent.process.checkIns.title}
+              </h3>
+              <p className="text-lg text-gray-600 mb-6">
+                {demoContent.process.checkIns.description}
               </p>
-            </div>
-          )}
-
-          {/* Visual Explainer - Always Visible */}
-          <VisualExplainer />
-
-          {/* Lead Intake Form */}
-          {!showDemo && (
-            <div className="max-w-2xl mx-auto">
-              <LeadIntakeForm onLeadCreated={handleLeadCreated} />
-            </div>
-          )}
-
-          {/* Demo Content - Shows After Lead Creation */}
-          {showDemo && currentLead && (
-            <>
-              {/* Success Message */}
-              <div className="bg-green-900/20 border border-green-700 rounded-xl p-6 text-center">
-                <div className="text-3xl mb-2">✓</div>
-                <h2 className="text-2xl font-bold mb-2">Lead Created!</h2>
-                <p className="text-gray-300">
-                  You're all set, {currentLead.ownerName}. Here's what I'm recommending for {currentLead.businessName}.
-                </p>
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <ul className="space-y-3">
+                  {demoContent.process.checkIns.cadence.map((item, index) => (
+                    <li key={index} className="flex items-start gap-3 text-gray-600">
+                      <span className="text-gray-400 mt-0.5">→</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
+            </div>
 
-              {/* System Stack */}
-              <SystemStackDisplay lead={currentLead} />
-
-              {/* Demo Panel */}
-              <div id="demo-panel">
-                <DemoPanel lead={currentLead} />
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">
+                {demoContent.process.reporting.title}
+              </h3>
+              <p className="text-lg text-gray-600 mb-6">
+                {demoContent.process.reporting.description}
+              </p>
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <ul className="space-y-3">
+                  {demoContent.process.reporting.includes.map((item, index) => (
+                    <li key={index} className="flex items-start gap-3 text-gray-600">
+                      <span className="text-gray-400 mt-0.5">✓</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
+            </div>
+          </div>
 
-              {/* Call to Action */}
-              <div className="card text-center bg-white text-black">
-                <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
-                <p className="text-lg mb-6 text-gray-700">
-                  BenBuildsBiz creates custom automation systems that save you time and bring you more customers.
+          {/* Expectations */}
+          <div>
+            <h3 className="text-3xl font-bold text-gray-900 mb-6">
+              {demoContent.process.expectations.title}
+            </h3>
+            <p className="text-lg text-gray-600 mb-10">
+              For this to work, I need a few things from you. These aren't negotiable—they're what make successful projects successful.
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {demoContent.process.expectations.items.map((item, index) => (
+                <div key={index} className="bg-white border border-gray-200 rounded-lg p-6">
+                  <h4 className="text-lg font-bold text-gray-900 mb-3">
+                    {item.title}
+                  </h4>
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    {item.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* System Diagrams Section */}
+      <section className="py-24">
+        <div className="max-w-6xl mx-auto px-6 lg:px-8">
+          <h2 className="text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
+            How the System Works
+          </h2>
+          <p className="text-xl text-gray-600 mb-16 max-w-3xl">
+            Click and drag to explore each diagram. Pan, zoom, and see how every piece connects.
+          </p>
+          
+          <div className="space-y-16">
+            {demoContent.systemDiagrams.map((diagram, index) => (
+              <div key={index} className="bg-white border border-gray-200 rounded-xl p-8 shadow-sm">
+                <h3 className="text-3xl font-bold text-gray-900 mb-3">
+                  {diagram.title}
+                </h3>
+                <p className="text-lg text-gray-600 mb-6">
+                  {diagram.description}
                 </p>
-                <div className="space-y-3">
-                  <p className="text-xl font-semibold">Let's talk about your business.</p>
-                  <p className="text-gray-600">We'll create a custom plan tailored exactly to your needs.</p>
+                <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+                  <iframe
+                    style={{ border: "1px solid rgba(0, 0, 0, 0.1)" }}
+                    width="100%"
+                    height="600"
+                    src={diagram.figmaUrl}
+                    allowFullScreen
+                    className="w-full"
+                    title={diagram.title}
+                  />
                 </div>
               </div>
-            </>
-          )}
+            ))}
+          </div>
         </div>
-      </main>
+      </section>
 
-      {/* Sticky Footer */}
-      {showDemo && <StickyFooter onReset={handleReset} />}
+      {/* Final CTA Section */}
+      <section className="py-24 bg-gray-900">
+        <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
+          <h2 className="text-5xl lg:text-6xl font-bold text-white mb-8">
+            Ready to Launch Your System?
+          </h2>
+          <p className="text-2xl text-gray-300 mb-12 leading-relaxed">
+            Let's schedule a follow-up call to discuss your specific business and next steps.
+          </p>
+          <Link
+            href="/demo/book"
+            className="inline-block px-10 py-5 bg-white text-gray-900 font-bold rounded-lg hover:bg-gray-100 transition-colors text-xl"
+          >
+            Book Your Follow-Up Call →
+          </Link>
+          <p className="text-gray-400 mt-8 text-lg">
+            No pressure. No pitch. Just an honest conversation about whether this fits your business.
+          </p>
+        </div>
+      </section>
     </div>
   );
 }
-

@@ -1,132 +1,189 @@
-"use client";
+import React from 'react';
+import { Metadata } from 'next';
+import ContactForm from '@/components/ContactForm';
+import Button from '@/components/Button';
 
-import Link from "next/link";
-import ChatBox from "@/components/ChatBox";
+export const metadata: Metadata = {
+  title: 'Contact',
+  description: 'Get in touch to discuss your business needs or fitness coaching.',
+};
 
 export default function WorkWithBenPage() {
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <header className="border-b border-charcoal-800 bg-charcoal-950">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold hover:text-gray-300 transition-colors">
-            BenBuildsBiz
-          </Link>
-          <nav className="flex gap-6">
-            <Link href="/workwithben" className="text-sm text-white font-semibold">
-              Work With Ben
-            </Link>
-          </nav>
-        </div>
-      </header>
-
-      <main className="max-w-5xl mx-auto px-4 py-12">
-        <div className="grid md:grid-cols-2 gap-12 items-start">
-          {/* Left Side - Info */}
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <h1 className="text-4xl md:text-5xl font-bold">
-                Let's Build Something Amazing
-              </h1>
-              <p className="text-xl text-gray-400">
-                Ready to automate your business and get more customers? Let's chat about what you need.
-              </p>
-            </div>
-
-            <div className="space-y-4 pt-4">
-              <div className="flex items-start gap-3">
-                <div className="mt-1">
-                  <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Custom Solutions</h3>
-                  <p className="text-gray-400">Built specifically for your business needs</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="mt-1">
-                  <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Fast Setup</h3>
-                  <p className="text-gray-400">Get up and running quickly with proven systems</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="mt-1">
-                  <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">ROI Focused</h3>
-                  <p className="text-gray-400">Systems that pay for themselves with new revenue</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-6 space-y-3 border-t border-charcoal-800">
-              <h3 className="font-semibold">What You'll Get:</h3>
-              <ul className="space-y-2 text-gray-300">
-                <li className="flex items-center gap-2">
-                  <span className="text-blue-500">•</span>
-                  Automated customer communication
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-blue-500">•</span>
-                  24/7 booking and scheduling
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-blue-500">•</span>
-                  Follow-up and review systems
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-blue-500">•</span>
-                  CRM and pipeline management
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-blue-500">•</span>
-                  Payment processing integration
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Right Side - Chat */}
-          <div className="sticky top-8">
-            <ChatBox 
-              welcomeMessage="Hey! I'm Ben 👋
-
-I help businesses like yours automate the boring stuff so you can focus on what you do best.
-
-What kind of business are you running? Let's see how I can help!"
-            />
+      <section className="section-padding border-b-4 border-steel">
+        <div className="container-custom">
+          <div className="max-w-5xl space-y-12">
+            <div className="accent-box">// CONTACT</div>
+            <h1 className="text-7xl md:text-9xl font-black leading-[0.85] uppercase">
+              Let&apos;s Talk
+            </h1>
+            <p className="text-xl md:text-2xl text-ash font-bold max-w-3xl">
+              Ready to fix your systems or build real discipline? Pick your path below.
+            </p>
           </div>
         </div>
+      </section>
 
-      </main>
+      <section className="section-padding border-b-4 border-steel bg-charcoal">
+        <div className="container-custom">
+          <div className="max-w-5xl mx-auto">
+            <div className="mb-16">
+              <div className="accent-box mb-4">// CHOOSE YOUR PATH</div>
+              <h2 className="text-4xl md:text-6xl font-black uppercase mb-8">What Do You Need Help With?</h2>
+              
+              <div className="grid md:grid-cols-2 gap-8">
+                {/* Business Path */}
+                <div className="border-4 border-steel p-10 hover:border-pure-white transition-colors bg-midnight">
+                  <div className="accent-box mb-6">// BUSINESS</div>
+                  <h3 className="text-3xl font-black uppercase mb-4">Business Systems</h3>
+                  <p className="text-ash font-medium mb-6 leading-relaxed">
+                    Get more customers with automated follow-up, booking, and lead response systems.
+                  </p>
+                  
+                  <div className="space-y-3 mb-8">
+                    <div className="flex items-start gap-3">
+                      <span className="text-pure-white font-black">→</span>
+                      <span className="text-ash text-sm font-medium">Never lose a 3am lead again</span>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="text-pure-white font-black">→</span>
+                      <span className="text-ash text-sm font-medium">Turn 40% of ghost leads into calls</span>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="text-pure-white font-black">→</span>
+                      <span className="text-ash text-sm font-medium">Calendar fills while you sleep</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <Button 
+                      href="/work"
+                      variant="primary"
+                      className="w-full"
+                    >
+                      Apply for Business Systems →
+                    </Button>
+                    <p className="text-xs text-center text-smoke uppercase tracking-widest">
+                      Quick book or full application
+                    </p>
+                  </div>
+                </div>
 
-      {/* Footer */}
-      <footer className="border-t border-charcoal-800 mt-20">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
-            <Link href="/privacy" className="hover:text-gray-300 transition-colors">
-              Privacy Policy
-            </Link>
-            <span>•</span>
-            <Link href="/terms" className="hover:text-gray-300 transition-colors">
-              Terms & Conditions
-            </Link>
+                {/* Fitness Path */}
+                <div className="border-4 border-steel p-10 hover:border-pure-white transition-colors bg-midnight">
+                  <div className="accent-box mb-6">// FITNESS</div>
+                  <h3 className="text-3xl font-black uppercase mb-4">Fitness Coaching</h3>
+                  <p className="text-ash font-medium mb-6 leading-relaxed">
+                    Build real discipline and capability with 1:1 training for people who do hard things.
+                  </p>
+                  
+                  <div className="space-y-3 mb-8">
+                    <div className="flex items-start gap-3">
+                      <span className="text-pure-white font-black">→</span>
+                      <span className="text-ash text-sm font-medium">Show up when you don't want to</span>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="text-pure-white font-black">→</span>
+                      <span className="text-ash text-sm font-medium">Build trust with yourself</span>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="text-pure-white font-black">→</span>
+                      <span className="text-ash text-sm font-medium">Prove you can do hard things</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <Button 
+                      href="/fitness"
+                      variant="primary"
+                      className="w-full"
+                    >
+                      Apply for Fitness Coaching →
+                    </Button>
+                    <p className="text-xs text-center text-smoke uppercase tracking-widest">
+                      Quick book or full application
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* General Inquiry Section */}
+            <div className="mb-16">
+              <div className="border-t-4 border-steel pt-16">
+                <div className="text-center mb-12">
+                  <div className="accent-box mb-4 inline-block">// GENERAL INQUIRY</div>
+                  <h3 className="text-3xl md:text-4xl font-black uppercase mb-4">Not Sure? Just Have a Question?</h3>
+                  <p className="text-ash font-medium max-w-2xl mx-auto">
+                    Fill out this form or email me directly. I respond to every real inquiry within 24-48 hours.
+                  </p>
+                </div>
+                
+                <div className="grid md:grid-cols-2 gap-8 mb-12">
+                  <div className="border-4 border-steel p-8">
+                    <h4 className="text-xs uppercase tracking-widest font-black mb-4">DIRECT EMAIL</h4>
+                    <a 
+                      href="mailto:ben@benbuildsbiz.com" 
+                      className="text-pure-white hover:text-smoke font-black uppercase text-lg tracking-wider block mb-4"
+                    >
+                      ben@benbuildsbiz.com
+                    </a>
+                    <p className="text-ash text-sm font-medium">
+                      Best for: Specific questions, partnership inquiries, or if you just want to say hi.
+                    </p>
+                  </div>
+                  
+                  <div className="border-4 border-steel p-8">
+                    <h4 className="text-xs uppercase tracking-widest font-black mb-4">DISCOVERY CALL</h4>
+                    <p className="text-pure-white font-bold mb-4">
+                      15-20 minutes. No pitch.
+                    </p>
+                    <p className="text-ash text-sm font-medium">
+                      Use the form below to schedule a quick call. We'll figure out if I can help and what the next steps are.
+                    </p>
+                  </div>
+                </div>
+                
+                <div id="discovery-form" className="scroll-mt-24">
+                  <ContactForm formType="general" />
+                </div>
+              </div>
+            </div>
+            
+            {/* What Happens Next */}
+            <div className="border-4 border-pure-white p-10 md:p-16">
+              <h3 className="text-2xl font-black uppercase mb-8 text-center">What Happens Next</h3>
+              
+              <div className="grid md:grid-cols-3 gap-8">
+                <div>
+                  <div className="text-4xl font-black mb-4 text-smoke">01</div>
+                  <h4 className="text-sm font-black uppercase mb-3">You Reach Out</h4>
+                  <p className="text-ash text-sm font-medium">
+                    Pick a path above or fill out the general form. Tell me what you need.
+                  </p>
+                </div>
+                
+                <div>
+                  <div className="text-4xl font-black mb-4 text-smoke">02</div>
+                  <h4 className="text-sm font-black uppercase mb-3">We Talk</h4>
+                  <p className="text-ash text-sm font-medium">
+                    I respond within 24-48 hours. We schedule a call. No sales pitch—just an honest conversation.
+                  </p>
+                </div>
+                
+                <div>
+                  <div className="text-4xl font-black mb-4 text-smoke">03</div>
+                  <h4 className="text-sm font-black uppercase mb-3">We Build or We Don't</h4>
+                  <p className="text-ash text-sm font-medium">
+                    If it's a fit, we work together. If not, I'll tell you. I only take on work where I can deliver results.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </footer>
+      </section>
     </div>
   );
 }
-

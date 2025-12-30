@@ -12,3 +12,4 @@ export default function SystemCard({ title, description }: SystemCardProps) {
   );
 }
 
+

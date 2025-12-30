@@ -23,18 +23,19 @@ export default function StickyCTA() {
     <Link
       href="/demo/book"
       className={`
-        fixed bottom-8 right-8 z-50
-        px-6 py-3
+        fixed bottom-4 right-4 lg:bottom-8 lg:right-8 z-50
+        px-4 py-2.5 lg:px-6 lg:py-3
         bg-gray-900 text-white
         rounded-lg
-        font-medium text-sm
+        font-medium text-xs lg:text-sm
         shadow-lg hover:shadow-xl
         hover:bg-gray-800
         transition-all duration-300
         ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-16 pointer-events-none'}
       `}
     >
-      Book a Call →
+      <span className="hidden sm:inline">Book a Call →</span>
+      <span className="sm:hidden">Book Call</span>
     </Link>
   );
 }
